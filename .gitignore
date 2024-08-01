@@ -1,0 +1,15 @@
+#ignore environment variables file
+.env
+
+# ignore temporary files
+tmp
+temp
+internal/requests/result.txt
+
+# ignore test Docker files and dotenv
+compose.test.yaml
+app.test.Dockerfile
+test.env
+
+# ignore local logs 
+logs
