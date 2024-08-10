@@ -1,30 +1,22 @@
 package validators
 
 import (
-	"fmt"
 	"yurii-lib/internal/models/dto"
-)
-
-var (
-	ErrEmptyTitle    = fmt.Errorf("empty title")
-	ErrEmptyCategory = fmt.Errorf("empty category")
-	ErrEmptyAuthors  = fmt.Errorf("empty authors")
-	ErrWrongRack     = fmt.Errorf("rack value less than 1")
-	ErrWrongShelf    = fmt.Errorf("shelf value less than 1")
+	"yurii-lib/pkg/errs"
 )
 
 func ValidBookPlacement(book *dto.BookPlacement) (bool, error) {
 	switch {
 	case book.Title == "":
-		return false, ErrEmptyTitle
+		return false, errs.ErrEmptyTitle
 	case book.Category == "":
-		return false, ErrEmptyCategory
+		return false, errs.ErrEmptyCategory
 	case len(book.Authors) == 0 || emptyStrings(book.Authors):
-		return false, ErrEmptyAuthors
+		return false, errs.ErrEmptyAuthors
 	case book.Rack < 1:
-		return false, ErrWrongRack
+		return false, errs.ErrWrongRack
 	case book.Rack < 1:
-		return false, ErrWrongShelf
+		return false, errs.ErrWrongShelf
 	default:
 		return true, nil
 	}

@@ -17,6 +17,3 @@ build_test_env:
 # applying migrations on test db
 test_migrations_up:
 	goose -dir deploy/migrations postgres "postgresql://user:1234@172.17.0.2:5432/lib_test?sslmode=disable" up
-
-# applying migrations on main db TODO
-migrations_up:
