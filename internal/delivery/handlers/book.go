@@ -6,12 +6,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"yurii-lib/internal/format"
 	"yurii-lib/internal/models/dto"
 	"yurii-lib/internal/requests"
 	"yurii-lib/internal/service"
 	"yurii-lib/internal/validators"
 	"yurii-lib/pkg/errs"
+	"yurii-lib/pkg/utils/format"
 
 	"github.com/gin-gonic/gin"
 )
@@ -101,7 +101,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 	}
 
 	if book.Book.Authors == nil && book.Book.Category == nil && book.Book.Description == nil &&
-		book.Book.IsForeign == nil && book.Book.Logo == nil && book.Book.Title == nil {
+		book.Book.IsForeign == nil && book.Book.CoverURL == nil && book.Book.Title == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "no parameters provided"})
 		return
 	}

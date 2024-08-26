@@ -52,7 +52,7 @@ func TestGetBookByISBN(t *testing.T) {
 			} else {
 				str = fmt.Sprintf("%sNo description", str)
 			}
-			str = fmt.Sprintf("%sForeign: %v\nLogo: %v\nTitle: %s\n\n", str, book.IsForeign, book.Logo, book.Title)
+			str = fmt.Sprintf("%sForeign: %v\nLogo: %v\nTitle: %s\n\n", str, book.IsForeign, book.CoverURL, book.Title)
 		}
 
 		file.Write([]byte(str))

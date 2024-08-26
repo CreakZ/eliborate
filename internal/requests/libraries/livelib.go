@@ -69,10 +69,11 @@ func GetBookWithLivelib(wg *sync.WaitGroup, isbn string, books chan dto.BookInfo
 			case "object-cover":
 				stl, _ := s.Attr("style")
 
+				// cutting prefix and suffix to get cover url
 				stl, _ = strings.CutPrefix(stl, "background:url(")
 				stl, _ = strings.CutSuffix(stl, ") no-repeat;")
 
-				book.Logo = &stl
+				book.CoverURL = &stl
 			}
 		})
 	}(&innerWG)

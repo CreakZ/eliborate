@@ -7,20 +7,55 @@ import (
 	domain "yurii-lib/internal/models/domain"
 	"yurii-lib/pkg/errs"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/jmoiron/sqlx"
 )
 
 type bookRepo struct {
-	db *sqlx.DB
+	db  *sqlx.DB
+	svc *s3.S3
 }
 
-func InitBookRepo(db *sqlx.DB) BookRepo {
+func InitBookRepo(db *sqlx.DB, svc *s3.S3) BookRepo {
 	return bookRepo{
-		db: db,
+		db:  db,
+		svc: svc,
 	}
 }
 
 func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (int, error) {
+	// Попытка поместить файл в S3-хранилище
+	/*
+		var imgKey sql.NullString
+
+		if book.Cover.Valid {
+			resp, err := http.Get(book.Cover.String)
+			if err != nil {
+				return 0, err
+			}
+
+			// handle error
+			body, _ := io.ReadAll(resp.Body)
+
+			img := bytes.NewReader(body)
+
+			imgID := uuid.New().String()
+
+			key := fmt.Sprintf("%s.webp", imgID)
+
+			_, err = b.svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
+				Bucket: aws.String(viper.GetString(config.S3ImageBucketName)),
+				Key:    aws.String(key),
+				Body:   img,
+			})
+			if err != nil {
+				return 0, err
+			}
+
+			imgKey.String = key
+		}
+	*/
+
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -29,11 +64,13 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (in
 	query := `INSERT INTO books (title, authors, description, category, is_foreign, logo, rack, shelf) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
 	row := tx.QueryRowContext(ctx, query,
-		book.Title, book.Authors, book.Description, book.Category, book.IsForeign, book.Logo, book.Rack, book.Shelf)
+		book.Title, book.Authors, book.Description, book.Category, book.IsForeign, book.CoverURL, book.Rack, book.Shelf)
 
 	var bookID int
 	if err = row.Scan(&bookID); err != nil {
-		tx.Rollback()
+		if errTxRb := tx.Rollback(); errTxRb != nil {
+			return 0, errs.MergeErrors("create book", []string{err.Error(), errTxRb.Error()})
+		}
 
 		return 0, err
 	}
@@ -65,7 +102,7 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int) ([]domain.Book,
 
 	for res.Next() {
 		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category,
-			&book.Authors, &book.IsForeign, &book.Logo, &book.Rack, &book.Shelf); err != nil {
+			&book.Authors, &book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf); err != nil {
 			return []domain.Book{}, err
 		}
 
@@ -85,7 +122,7 @@ func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, 
 	var book domain.Book
 	for res.Next() {
 		err = res.Scan(&book.ID, &book.Title, &book.Category, &book.Description, &book.Authors,
-			&book.IsForeign, &book.Logo, &book.Rack, &book.Shelf)
+			&book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf)
 		if err != nil {
 			// scan error
 			return []domain.Book{}, err
@@ -99,8 +136,11 @@ func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, 
 
 // TODO
 func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.Book, error) {
-	query := `SELECT * FROM books WHERE title % $1 OR EXISTS (
-		SELECT 1 FROM unnest(authors) AS author WHERE author % $1
+	query := `SELECT * FROM books 
+	WHERE title % $1 OR title LIKE '%$1%' OR 
+	EXISTS (
+		SELECT 1 FROM unnest(authors) AS author 
+		WHERE author % $1 OR author LIKE '%$1%'
 	);`
 
 	rows, err := b.db.QueryContext(ctx, query, text)
@@ -115,7 +155,7 @@ func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]doma
 
 	for rows.Next() {
 		err = rows.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
-			&book.IsForeign, &book.Logo, &book.Rack, &book.Shelf)
+			&book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf)
 		if err != nil {
 			return []domain.Book{}, err
 		}

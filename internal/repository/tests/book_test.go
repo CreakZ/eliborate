@@ -23,12 +23,12 @@ func TestCreateBook(t *testing.T) {
 			Title:   "Моби Дик, или Белый Кит",
 			Authors: []string{"Герман Мелвилл"},
 			Description: sql.NullString{
-				String: "Очень интересная книга",
+				String: "Книга о выживании в нечеловеческих условиях",
 				Valid:  true,
 			},
 			Category:  4,
 			IsForeign: true,
-			Logo: sql.NullString{
+			CoverURL: sql.NullString{
 				Valid: false,
 			},
 		},
@@ -38,15 +38,15 @@ func TestCreateBook(t *testing.T) {
 
 	book2 := domain.BookPlacement{
 		BookInfo: domain.BookInfo{
-			Title:   "",
+			Title:   "Теория удвоенного времени, или почему я опоздал в Ригу",
 			Authors: []string{"Майкл Наки"},
 			Description: sql.NullString{
-				String: "Теория удвоенного времени, или почему я опоздал в Ригу",
+				String: "Пособие по теории удвоенного времени. Аналогичные задачи в пособии не рассматриваются",
 				Valid:  true,
 			},
 			Category:  0,
 			IsForeign: false,
-			Logo: sql.NullString{
+			CoverURL: sql.NullString{
 				Valid: false,
 			},
 		},
@@ -56,19 +56,19 @@ func TestCreateBook(t *testing.T) {
 
 	book3 := domain.BookPlacement{
 		BookInfo: domain.BookInfo{
-			Title: "Бутса Вконтакто",
+			Title: "Зарождение бутсы Вконтакте",
 			Authors: []string{
-				"Николай Голангер",
+				"Николай Горлангер",
 				"Самара Бутсович",
 				"Даниил Тикток",
 				"Григорий Котлинович"},
 			Description: sql.NullString{
-				String: "Основы, мы бы сказали, база основ",
+				String: "Книга, обязательная для прочтения любому senior PHP-разработчику",
 				Valid:  true,
 			},
 			Category:  11,
 			IsForeign: false,
-			Logo: sql.NullString{
+			CoverURL: sql.NullString{
 				Valid: false,
 			},
 		},

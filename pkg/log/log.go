@@ -8,14 +8,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// add zerolog instead
 type Log struct {
 	InfoLogger  *zerolog.Logger
 	ErrorLogger *zerolog.Logger
 }
 
 func InitLogger() (*Log, *os.File, *os.File) {
-	zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
+	zerolog.TimeFieldFormat = "02.01.2006 15:04:05"
 
 	if err := os.MkdirAll("logs", os.ModePerm); err != nil {
 		if !errors.Is(err, os.ErrExist) {

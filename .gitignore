@@ -1,15 +1,19 @@
-#ignore environment variables file
+# игнорирование конфигурационных файлов
 .env
+test.env
 
-# ignore temporary files
+admins.yaml
+
+# игнорирование временных файлов ("грязные" файлы времен создания проекта)
 tmp
 temp
 internal/requests/result.txt
 
-# ignore test Docker files and dotenv
+# игнорированные тестовых Dockerfile и Docker compose
 compose.test.yaml
 app.test.Dockerfile
-test.env
 
-# ignore local logs 
-logs
+
+# игнорирование локальных логов
+info.log 
+error.log

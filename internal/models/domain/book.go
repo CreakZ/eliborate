@@ -12,7 +12,7 @@ type BookInfo struct {
 	Description sql.NullString
 	Category    int
 	IsForeign   bool
-	Logo        sql.NullString
+	CoverURL    sql.NullString
 }
 
 type UpdateBookInfo struct {
@@ -20,7 +20,7 @@ type UpdateBookInfo struct {
 	Authors               pq.StringArray
 	Description, Category sql.NullString
 	IsForeign             sql.NullBool
-	Logo                  sql.NullString
+	CoverURL              sql.NullString
 }
 
 type BookPlacement struct {

@@ -29,7 +29,6 @@ func Cleanify(s string) string {
 	}
 
 	left = i
-
 	i = len(s) - 1
 
 	for i > -1 {
@@ -137,7 +136,7 @@ func GetBookWithChitaiGorod(wg *sync.WaitGroup, isbn string, books chan dto.Book
 			if class == "product-info-gallery__poster" {
 				src, _ := s.Attr("src")
 
-				book.Logo = &src
+				book.CoverURL = &src
 			}
 		})
 	}(&innerWG)

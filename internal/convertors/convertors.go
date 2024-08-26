@@ -80,10 +80,10 @@ func CategoryToString(category int) string {
 }
 
 func ToDomainBookInfo(book dto.BookInfo) domain.BookInfo {
-	var logo sql.NullString
-	if book.Logo != nil {
-		logo.String = *book.Logo
-		logo.Valid = true
+	var cover sql.NullString
+	if book.CoverURL != nil {
+		cover.String = *book.CoverURL
+		cover.Valid = true
 	}
 
 	var desc sql.NullString
@@ -98,7 +98,7 @@ func ToDomainBookInfo(book dto.BookInfo) domain.BookInfo {
 		Description: desc,
 		Category:    CategoryToInt(book.Category),
 		IsForeign:   book.IsForeign,
-		Logo:        logo,
+		CoverURL:    cover,
 	}
 }
 
@@ -129,8 +129,8 @@ func UpdateBookInfoToMap(book dto.UpdateBookInfo) map[string]interface{} {
 		values["title"] = *book.Title
 	}
 
-	if book.Logo != nil {
-		values["logo"] = *book.Logo
+	if book.CoverURL != nil {
+		values["logo"] = *book.CoverURL
 	}
 
 	fmt.Println(len(values))
@@ -154,9 +154,9 @@ func ToDomainBook(book dto.Book) domain.Book {
 }
 
 func ToDtoBookInfo(book domain.BookInfo) dto.BookInfo {
-	var logo *string
-	if book.Logo.Valid {
-		logo = &book.Logo.String
+	var cover *string
+	if book.CoverURL.Valid {
+		cover = &book.CoverURL.String
 	}
 
 	var desc *string
@@ -170,7 +170,7 @@ func ToDtoBookInfo(book domain.BookInfo) dto.BookInfo {
 		Description: desc,
 		Category:    CategoryToString(book.Category),
 		IsForeign:   book.IsForeign,
-		Logo:        logo,
+		CoverURL:    cover,
 	}
 }
 

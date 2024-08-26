@@ -1,6 +1,10 @@
 package errs
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
 var (
 	ErrNoRowsAffected = fmt.Errorf("no rows affected")
@@ -11,3 +15,10 @@ var (
 	ErrWrongRack     = fmt.Errorf("rack value less than 1")
 	ErrWrongShelf    = fmt.Errorf("shelf value less than 1")
 )
+
+func MergeErrors(caller string, errSlice []string) error {
+	base := []string{fmt.Sprintf("%s: multiple errors occured:", caller)}
+	base = append(base, errSlice...)
+
+	return errors.New(strings.Join(base, "\n\t"))
+}

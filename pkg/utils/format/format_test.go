@@ -2,7 +2,7 @@ package format_test
 
 import (
 	"testing"
-	"yurii-lib/internal/format"
+	"yurii-lib/pkg/utils/format"
 )
 
 func TestFormatISBN(t *testing.T) {

@@ -27,7 +27,7 @@ func (b bookService) CreateBook(ctx context.Context, book dto.BookPlacement) (in
 	bookConv := convertors.ToDomainBookPlacement(book)
 
 	if bookConv.Category == -1 {
-		b.log.InfoLogger.Info().Msg("")
+		b.log.InfoLogger.Info().Msg("wrong book category")
 		return 0, ErrWrongCategory
 	}
 

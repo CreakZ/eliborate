@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS books (
     category INTEGER,
     authors VARCHAR[] NOT NULL,
     is_foreign BOOLEAN NOT NULL,
-    logo VARCHAR NULL,
+    cover_url VARCHAR NULL,
     rack INTEGER,
     shelf INTEGER
 );

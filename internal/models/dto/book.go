@@ -6,7 +6,9 @@ type BookInfo struct {
 	Description *string  `json:"description"`
 	Category    string   `json:"category"`
 	IsForeign   bool     `json:"is_foreign"`
-	Logo        *string  `json:"logo"`
+
+	// Обложка книги. Хранит URL изображения
+	CoverURL *string `json:"logo"`
 }
 
 type UpdateBookInfo struct {
@@ -15,7 +17,7 @@ type UpdateBookInfo struct {
 	Description *string   `json:"description"`
 	Category    *string   `json:"category"`
 	IsForeign   *bool     `json:"is_foreign"`
-	Logo        *string   `json:"logo"`
+	CoverURL    *string   `json:"logo"`
 }
 
 type BookPlacement struct {

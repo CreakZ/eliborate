@@ -25,18 +25,26 @@ func main() {
 	config.InitConfig()
 	logger.InfoLogger.Info().Msg("Config initialized successfully")
 
+	// Инициализация подключения к БД
 	db := database.ConnectDB()
+	logger.InfoLogger.Info().Msg("Database initialized successfully")
+
+	// Инициализация клиента S3-хранилища
+	svc := database.InitS3Client()
+	logger.InfoLogger.Info().Msg("S3 initialized successfully")
 
 	// Инициализация JWT
 	jwtUtil := jwt.InitJWTUtil()
+	logger.InfoLogger.Info().Msg("JWT initialized successfully")
 
 	// Инициализация middleware
 	middlewarrior := middleware.InitMiddleware(jwtUtil, logger)
+	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
 
 	// Инициализация маршрутизаторов
-	routers.InitRouting(server, db, logger, middlewarrior)
+	routers.InitRouting(server, db, svc, logger, middlewarrior)
 
-	// Запуска сервера
+	// Запуск сервера
 	if err := server.Run(":8080"); err != nil {
 		panic(fmt.Errorf("server run error: %s", err))
 	}

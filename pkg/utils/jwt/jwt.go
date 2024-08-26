@@ -34,7 +34,7 @@ func InitJWTUtil() JWT {
 func (j JWTUtil) CreateToken(id int, isAdmin bool) string {
 	expires := time.Now().Add(j.expiration)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claim{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim{
 		ID:      id,
 		IsAdmin: isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
