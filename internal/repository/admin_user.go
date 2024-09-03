@@ -8,40 +8,23 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type userRepo struct {
+type adminUserRepo struct {
 	db *sqlx.DB
 }
 
-func InitUserRepo(db *sqlx.DB) UserRepo {
-	return userRepo{
+func InitAdminUserRepo(db *sqlx.DB) AdminUserRepo {
+	return adminUserRepo{
 		db: db,
 	}
 }
 
-func (u userRepo) CreateUser(ctx context.Context, user domain.UserCreate) (int, error) {
-	var count int
-	rows, err := u.db.QueryContext(ctx, `SELECT COUNT(*) FROM users WHERE login = $1`, user.Login)
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-
-	if err = rows.Scan(&count); err != nil {
-		return 0, err
-	}
-
-	if count != 0 {
-		return 0, errs.ErrUserAlreadyExists
-	}
-
+func (u adminUserRepo) CreateAdminUser(ctx context.Context, user domain.AdminUserCreate) (int, error) {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, nil
 	}
 
-	query := `INSERT INTO users (login, name, password) VALUES ($1, $2, $3) RETURNING id;`
-
-	row := tx.QueryRowContext(ctx, query, user.Login, user.Name, user.Password)
+	row := tx.QueryRowContext(ctx, `INSERT INTO admin_users VALUES ($1, $2) RETURNING id;`, user.Login, user.Password)
 
 	var id int
 	if err = row.Scan(&id); err != nil {
@@ -55,8 +38,8 @@ func (u userRepo) CreateUser(ctx context.Context, user domain.UserCreate) (int, 
 	return id, nil
 }
 
-func (u userRepo) GetUserPassword(ctx context.Context, id int) (string, error) {
-	row := u.db.QueryRowContext(ctx, `SELECT password FROM users WHERE id=$1`, id)
+func (u adminUserRepo) GetAdminUserPassword(ctx context.Context, id int) (string, error) {
+	row := u.db.QueryRowContext(ctx, `SELECT password FROM admin_users WHERE id=$1`, id)
 
 	var password string
 	if err := row.Scan(&password); err != nil {
@@ -66,13 +49,13 @@ func (u userRepo) GetUserPassword(ctx context.Context, id int) (string, error) {
 	return password, nil
 }
 
-func (u userRepo) UpdateUserPassword(ctx context.Context, id int, password string) error {
+func (u adminUserRepo) UpdateAdminUserPassword(ctx context.Context, id int, password string) error {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := tx.ExecContext(ctx, `UPDATE users SET password=$1 WHERE id=$2`, password, id)
+	res, err := tx.ExecContext(ctx, `UPDATE admin_users SET password=$1 WHERE id=$2`, password, id)
 	if err != nil {
 		tx.Rollback()
 
@@ -96,7 +79,22 @@ func (u userRepo) UpdateUserPassword(ctx context.Context, id int, password strin
 	return nil
 }
 
-func (u userRepo) DeleteUser(ctx context.Context, id int) error {
+func (u adminUserRepo) DeleteAdminUser(ctx context.Context, id int) error {
+	var count int
+	rows, err := u.db.QueryContext(ctx, `SELECT COUNT(*) from admin_users`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if err = rows.Scan(&count); err != nil {
+		return err
+	}
+
+	if count == 1 {
+		return errs.ErrLastAdminUser
+	}
+
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

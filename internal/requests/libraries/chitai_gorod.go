@@ -157,7 +157,5 @@ func GetBookWithChitaiGorod(wg *sync.WaitGroup, isbn string, books chan dto.Book
 
 	innerWG.Wait()
 
-	fmt.Println("google done")
-
 	books <- book
 }

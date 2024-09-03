@@ -9,24 +9,20 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitBooksRouter(group *gin.RouterGroup, db *sqlx.DB, storage *s3.S3, log *log.Log, middleware middleware.Middleware) {
+func InitBooksRouter(group *gin.RouterGroup, db *sqlx.DB, cache *redis.Client, storage *s3.S3, log *log.Log, middleware middleware.Middleware) {
 	bookRepo := repository.InitBookRepo(db, storage)
 	bookService := service.InitBookService(bookRepo, log)
-	bookHandlers := handlers.InitBookHandlers(bookService)
+	bookHandlers := handlers.InitBookHandlers(bookService, cache)
 
 	bookRouter := group.Group("/book")
 
 	bookRouter.POST("/create", bookHandlers.CreateBook)
 
 	bookRouter.GET("/get", bookHandlers.GetBookByISBN)
-
-	/*
-		UpdateBookInfo has problems:
-		- Passing struct as an argument implies request to update ALL row fields, including those weren't indended to update
-	*/
 
 	bookRouter.PUT("/update/info", bookHandlers.UpdateBookInfo)
 	bookRouter.PUT("/update/placement", bookHandlers.UpdateBookPlacement)

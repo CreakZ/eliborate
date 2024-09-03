@@ -9,7 +9,7 @@ import (
 )
 
 type JWT interface {
-	CreateToken(id int, isAdmin bool) string
+	CreateTokens(id int, isAdmin bool) (string, string)
 	Authorize(token string) (claim, bool, error)
 }
 
@@ -20,33 +20,47 @@ type claim struct {
 }
 
 type JWTUtil struct {
-	expiration time.Duration
-	secret     string
+	accessExpiration  time.Duration
+	refreshExpiration time.Duration
+	secret            string
 }
 
 func InitJWTUtil() JWT {
 	return JWTUtil{
-		expiration: time.Duration(viper.GetInt(config.JWTExpire)) * time.Hour,
-		secret:     viper.GetString(config.JWTSecret),
+		accessExpiration:  time.Duration(viper.GetInt(config.JWTAccessExpire)) * time.Minute,
+		refreshExpiration: time.Duration(viper.GetInt(config.JWTRefreshExpire)) * time.Minute,
+		secret:            viper.GetString(config.JWTSecret),
 	}
 }
 
-func (j JWTUtil) CreateToken(id int, isAdmin bool) string {
-	expires := time.Now().Add(j.expiration)
+func (j JWTUtil) CreateTokens(id int, isAdmin bool) (string, string) {
+	accessExpires := time.Now().Add(j.accessExpiration)
+	refreshExpires := time.Now().Add(time.Duration(j.accessExpiration))
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim{
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim{
 		ID:      id,
 		IsAdmin: isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: &jwt.NumericDate{
-				Time: expires,
+				Time: accessExpires,
 			},
 		},
 	})
 
-	signed, _ := token.SignedString([]byte(j.secret))
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim{
+		ID:      id,
+		IsAdmin: isAdmin,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: &jwt.NumericDate{
+				Time: refreshExpires,
+			},
+		},
+	})
 
-	return signed
+	accessSigned, _ := accessToken.SignedString([]byte(j.secret))
+	refreshSigned, _ := refreshToken.SignedString([]byte(j.secret))
+
+	return accessSigned, refreshSigned
 }
 
 func (j JWTUtil) Authorize(token string) (claim, bool, error) {

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: lib_frontend
+    
+  backend:
+    container_name: lib_backend
+    build:
+      context: ..
+      dockerfile: build/package/app.Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: yurii_lib_db
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - configs/.env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    

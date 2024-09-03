@@ -13,8 +13,13 @@ const (
 	DBPort     = "POSTGRES_PORT"
 	DBName     = "POSTGRES_DB"
 
-	JWTExpire = "JWT_EXPIRE"
-	JWTSecret = "JWT_SECRET"
+	RedisHost     = "REDIS_HOST"
+	RedisPassword = "REDIS_PASSWORD"
+	RedisPort     = "REDIS_PORT"
+
+	JWTAccessExpire  = "JWT_ACCESS_EXPIRE"
+	JWTRefreshExpire = "JWT_REFRESH_EXPIRE"
+	JWTSecret        = "JWT_SECRET"
 
 	S3AccessKey       = "S3_ACCESS_KEY"
 	S3SecretKey       = "S3_SECRET_KEY"

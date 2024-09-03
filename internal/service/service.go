@@ -19,15 +19,21 @@ type BookService interface {
 }
 
 type UserService interface {
-	CreateAdminUser(ctx context.Context, user dto.AdminUserCreate) (int, error)
 	CreateUser(ctx context.Context, user dto.UserCreate) (int, error)
 
-	GetAdminUserPassword(ctx context.Context, id int) (string, error)
 	GetUserPassword(ctx context.Context, id int) (string, error)
 
-	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
 	UpdateUserPassword(ctx context.Context, id int, password string) error
 
-	DeleteAdminUser(ctx context.Context, id int) error
 	DeleteUser(ctx context.Context, id int) error
+}
+
+type AdminUserService interface {
+	CreateAdminUser(ctx context.Context, user dto.AdminUserCreate) (int, error)
+
+	GetAdminUserPassword(ctx context.Context, id int) (string, error)
+
+	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
+
+	DeleteAdminUser(ctx context.Context, id int) error
 }

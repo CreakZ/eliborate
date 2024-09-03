@@ -21,15 +21,22 @@ type BookRepo interface {
 }
 
 type UserRepo interface {
-	CreateAdminUser(ctx context.Context, user domain.AdminUserCreate) (int, error)
 	CreateUser(ctx context.Context, user domain.UserCreate) (int, error)
 
-	GetAdminUserPassword(ctx context.Context, id int) (string, error)
 	GetUserPassword(ctx context.Context, id int) (string, error)
 
-	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
 	UpdateUserPassword(ctx context.Context, id int, password string) error
 
-	DeleteAdminUser(ctx context.Context, id int) error
 	DeleteUser(ctx context.Context, id int) error
+}
+
+// There cannot be less than 1 admin user
+type AdminUserRepo interface {
+	CreateAdminUser(ctx context.Context, user domain.AdminUserCreate) (int, error)
+
+	GetAdminUserPassword(ctx context.Context, id int) (string, error)
+
+	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
+
+	DeleteAdminUser(ctx context.Context, id int) error
 }

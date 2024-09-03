@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const userID = "user_id"
+
 func (m Middleware) Authorize() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		auth := c.GetHeader("Authorization")
@@ -32,6 +34,6 @@ func (m Middleware) Authorize() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claim.ID)
+		c.Set(userID, claim.ID)
 	}
 }

@@ -14,15 +14,18 @@ import (
 	"yurii-lib/pkg/utils/format"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 )
 
 type bookHandlers struct {
 	service service.BookService
+	cache   *redis.Client
 }
 
-func InitBookHandlers(service service.BookService) BookHandlers {
+func InitBookHandlers(service service.BookService, cache *redis.Client) BookHandlers {
 	return bookHandlers{
 		service: service,
+		cache:   cache,
 	}
 }
 
