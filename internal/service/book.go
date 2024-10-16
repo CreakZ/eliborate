@@ -6,17 +6,17 @@ import (
 	"yurii-lib/internal/convertors"
 	"yurii-lib/internal/models/dto"
 	"yurii-lib/internal/repository"
-	"yurii-lib/pkg/log"
+	"yurii-lib/pkg/lgr"
 )
 
 var ErrWrongCategory = fmt.Errorf("wrong category name")
 
 type bookService struct {
 	repo repository.BookRepo
-	log  *log.Log
+	log  *lgr.Log
 }
 
-func InitBookService(repo repository.BookRepo, log *log.Log) BookService {
+func InitBookService(repo repository.BookRepo, log *lgr.Log) BookService {
 	return bookService{
 		repo: repo,
 		log:  log,
@@ -53,6 +53,15 @@ func (b bookService) GetBooks(ctx context.Context, page, limit int) ([]dto.Book,
 	}
 
 	return books, nil
+}
+
+func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
+	count, err := b.repo.GetBooksTotalCount(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, error) {

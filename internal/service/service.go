@@ -9,6 +9,7 @@ type BookService interface {
 	CreateBook(ctx context.Context, book dto.BookPlacement) (int, error)
 
 	GetBooks(ctx context.Context, page, limit int) ([]dto.Book, error)
+	GetBooksTotalCount(ctx context.Context) (int, error)
 	GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, error)
 	GetBooksByTextSearch(ctx context.Context, text string) ([]dto.Book, error)
 
@@ -18,22 +19,28 @@ type BookService interface {
 	DeleteBook(ctx context.Context, id int) error
 }
 
+type PublicService interface {
+	GetByLogin(ctx context.Context, userType, login string) (int, string, error)
+}
+
 type UserService interface {
-	CreateUser(ctx context.Context, user dto.UserCreate) (int, error)
+	Create(ctx context.Context, user dto.UserCreate) (int, error)
 
-	GetUserPassword(ctx context.Context, id int) (string, error)
+	CheckByLogin(ctx context.Context, login string) (bool, error)
 
-	UpdateUserPassword(ctx context.Context, id int, password string) error
+	GetPassword(ctx context.Context, id int) (string, error)
 
-	DeleteUser(ctx context.Context, id int) error
+	UpdatePassword(ctx context.Context, id int, password string) error
+
+	Delete(ctx context.Context, id int) error
 }
 
 type AdminUserService interface {
-	CreateAdminUser(ctx context.Context, user dto.AdminUserCreate) (int, error)
+	// Create(ctx context.Context, user dto.AdminUserCreate) (int, error)
 
-	GetAdminUserPassword(ctx context.Context, id int) (string, error)
+	GetPassword(ctx context.Context, id int) (string, error)
 
-	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
+	UpdatePassword(ctx context.Context, id int, password string) error
 
-	DeleteAdminUser(ctx context.Context, id int) error
+	// Delete(ctx context.Context, id int) error
 }
