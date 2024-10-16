@@ -1,5 +1,4 @@
--- +goose Up
--- +goose StatementBegin
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS books (
     id SERIAL PRIMARY KEY,
@@ -13,14 +12,16 @@ CREATE TABLE IF NOT EXISTS books (
     shelf INTEGER
 );
 
-ALTER SEQUENCE id RESTART WITH 1;
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    login VARCHAR,
+    password VARCHAR,
+    name VARCHAR
+);
 
--- +goose StatementEnd
 
-
--- +goose Down
--- +goose StatementBegin
-
-DROP TABLE IF EXISTS books;
-
--- +goose StatementEnd
+CREATE TABLE IF NOT EXISTS admin_users (
+    id SERIAL PRIMARY KEY,
+    login VARCHAR,
+    password VARCHAR
+);
