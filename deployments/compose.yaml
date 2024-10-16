@@ -1,30 +1,45 @@
-version: '3.8'
-
 services:
-  frontend:
-    container_name: lib_frontend
-    
-  backend:
-    container_name: lib_backend
+  api:
+    container_name: lib_api
     build:
       context: ..
       dockerfile: build/package/app.Dockerfile
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
-    container_name: yurii_lib_db
-    image: postgres:13
+    container_name: lib_db
+    image: postgres:latest
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    env_file:
-      - configs/.env
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-    
+      - ./internal/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: lib_cache
+    image: redis:latest
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:6379"
+  
+
+volumes:
+  db_data:
