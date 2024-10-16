@@ -1,4 +1,4 @@
-package libraries
+package libs
 
 import (
 	"fmt"
@@ -93,69 +93,45 @@ func GetBookWithChitaiGorod(wg *sync.WaitGroup, isbn string, books chan dto.Book
 		return
 	}
 
-	innerWG := sync.WaitGroup{}
-
 	// Получение информации о названии
-	innerWG.Add(1)
-	go func(innerWG *sync.WaitGroup) {
-		defer innerWG.Done()
+	doc.Find("h1").Each(func(i int, s *goquery.Selection) {
+		class, _ := s.Attr("class")
 
-		doc.Find("h1").Each(func(i int, s *goquery.Selection) {
-			class, _ := s.Attr("class")
-
-			if class == "detail-product__header-title" {
-				book.Title = Cleanify(s.Text())
-			}
-		})
-	}(&innerWG)
+		if class == "detail-product__header-title" {
+			book.Title = Cleanify(s.Text())
+		}
+	})
 
 	// Получение информации об авторах
-	innerWG.Add(1)
-	go func(innerWG *sync.WaitGroup) {
-		defer innerWG.Done()
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		itemprop, _ := s.Attr("class")
 
-		doc.Find("a").Each(func(i int, s *goquery.Selection) {
-			itemprop, _ := s.Attr("class")
+		if itemprop == "product-info-authors__author" {
+			author, _ := strings.CutSuffix(Cleanify(s.Text()), ",")
 
-			if itemprop == "product-info-authors__author" {
-				author, _ := strings.CutSuffix(Cleanify(s.Text()), ",")
-
-				book.Authors = append(book.Authors, author)
-			}
-		})
-	}(&innerWG)
+			book.Authors = append(book.Authors, author)
+		}
+	})
 
 	// Получение информации об обложке
-	innerWG.Add(1)
-	go func(innerWG *sync.WaitGroup) {
-		defer innerWG.Done()
+	doc.Find("img").Each(func(i int, s *goquery.Selection) {
+		class, _ := s.Attr("class")
 
-		doc.Find("img").Each(func(i int, s *goquery.Selection) {
-			class, _ := s.Attr("class")
+		if class == "product-info-gallery__poster" {
+			src, _ := s.Attr("src")
 
-			if class == "product-info-gallery__poster" {
-				src, _ := s.Attr("src")
-
-				book.CoverURL = &src
-			}
-		})
-	}(&innerWG)
+			book.CoverURL = &src
+		}
+	})
 
 	// Получение информации об описании книги
-	innerWG.Add(1)
-	go func(innerWG *sync.WaitGroup) {
-		defer innerWG.Done()
+	desc := doc.Find("article")
 
-		desc := doc.Find("article")
+	if desc != nil {
+		text := Cleanify(desc.Text())
 
-		if desc != nil {
-			text := Cleanify(desc.Text())
-
-			book.Description = &text
-		}
-	}(&innerWG)
-
-	innerWG.Wait()
+		book.Description = &text
+	}
 
 	books <- book
 }

@@ -1,8 +1,8 @@
-package libraries_test
+package libs_test
 
 import (
 	"testing"
-	"yurii-lib/internal/requests/libraries"
+	"yurii-lib/internal/requests/libs"
 )
 
 func TestCleanify(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCleanify(t *testing.T) {
 	}
 
 	for i := range s {
-		res := libraries.Cleanify(s[i])
+		res := libs.Cleanify(s[i])
 
 		if res != expect[i] {
 			t.Errorf("error in string '%s'", s[i])

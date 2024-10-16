@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"sync"
 	dto "yurii-lib/internal/models/dto"
-	"yurii-lib/internal/requests/libraries"
+	"yurii-lib/internal/requests/libs"
 )
 
 const reqAmount = 2
 
 var ErrNoBooksFound = fmt.Errorf("no books found")
 
-// GetBookByISBN searches book info in 2 services (Chitai Gorod, Google API)
+// GetBookByISBN searches book info in 2 services (Читай Город, Google API)
 func GetBookByISBN(isbn string) ([]dto.BookInfo, error) {
 	wg := sync.WaitGroup{}
 
 	booksChan := make(chan dto.BookInfo, reqAmount)
 	errChan := make(chan error, reqAmount)
 
-	wg.Add(2)
+	wg.Add(reqAmount)
 
-	go libraries.GetBookWithGoogleAPI(&wg, isbn, booksChan, errChan)
-	go libraries.GetBookWithChitaiGorod(&wg, isbn, booksChan, errChan)
+	go libs.GetBookWithGoogleAPI(&wg, isbn, booksChan, errChan)
+	go libs.GetBookWithChitaiGorod(&wg, isbn, booksChan, errChan)
 
 	wg.Wait()
 
