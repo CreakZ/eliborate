@@ -61,7 +61,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (in
 		return 0, err
 	}
 
-	query := `INSERT INTO books (title, authors, description, category, is_foreign, logo, rack, shelf) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+	query := `INSERT INTO books (title, authors, description, category, is_foreign, cover_url, rack, shelf) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
 	row := tx.QueryRowContext(ctx, query,
 		book.Title, book.Authors, book.Description, book.Category, book.IsForeign, book.CoverURL, book.Rack, book.Shelf)
@@ -82,7 +82,6 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (in
 	return bookID, nil
 }
 
-// TODO
 func (b bookRepo) CreateCategory(ctx context.Context, category string) error {
 	return nil
 }
@@ -112,6 +111,16 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int) ([]domain.Book,
 	return books, nil
 }
 
+func (b bookRepo) GetBooksTotalCount(ctx context.Context) (int, error) {
+	var totalCount int
+
+	if err := b.db.GetContext(ctx, &totalCount, `SELECT COUNT(*) FROM books`); err != nil {
+		return 0, err
+	}
+
+	return totalCount, nil
+}
+
 func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error) {
 	res, err := b.db.QueryContext(ctx, `SELECT * FROM books WHERE rack=$1`, rack)
 	if err != nil {
@@ -136,10 +145,11 @@ func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, 
 
 // TODO
 func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.Book, error) {
-	query := `SELECT * FROM books 
-	WHERE title % $1 OR title LIKE '%$1%' OR 
+	query := `--sql
+	SELECT * FROM books
+	WHERE title % $1 OR title LIKE '%$1%' OR
 	EXISTS (
-		SELECT 1 FROM unnest(authors) AS author 
+		SELECT 1 FROM unnest(authors) AS author
 		WHERE author % $1 OR author LIKE '%$1%'
 	);`
 
@@ -212,27 +222,23 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 	return nil
 }
 
-// Modify this method
 func (b bookRepo) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
-		// tx begin error
 		return err
 	}
 
-	res, qErr := tx.ExecContext(ctx, `UPDATE library SET rack=$1, shelf=$2 WHERE book_id=$3`, rack, shelf, id)
+	res, qErr := tx.ExecContext(ctx, `--sql
+	UPDATE library SET rack=$1, shelf=$2 WHERE book_id=$3`, rack, shelf, id)
 	if qErr != nil {
-		// query error
 		return qErr
 	}
 
 	if affected, _ := res.RowsAffected(); affected != 1 {
-		// not a single row affected error
 		return errs.ErrNoRowsAffected
 	}
 
 	if err = tx.Commit(); err != nil {
-		// tx commit error
 		return err
 	}
 
@@ -242,7 +248,6 @@ func (b bookRepo) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) 
 func (b bookRepo) DeleteBook(ctx context.Context, id int) error {
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
-		// tx begin error
 		return err
 	}
 

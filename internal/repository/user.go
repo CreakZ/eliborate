@@ -18,7 +18,7 @@ func InitUserRepo(db *sqlx.DB) UserRepo {
 	}
 }
 
-func (u userRepo) CreateUser(ctx context.Context, user domain.UserCreate) (int, error) {
+func (u userRepo) Create(ctx context.Context, user domain.UserCreate) (int, error) {
 	var count int
 	rows, err := u.db.QueryContext(ctx, `SELECT COUNT(*) FROM users WHERE login = $1`, user.Login)
 	if err != nil {
@@ -55,7 +55,21 @@ func (u userRepo) CreateUser(ctx context.Context, user domain.UserCreate) (int, 
 	return id, nil
 }
 
-func (u userRepo) GetUserPassword(ctx context.Context, id int) (string, error) {
+func (u userRepo) CheckByLogin(ctx context.Context, login string) (bool, error) {
+	var exists bool
+
+	err := u.db.GetContext(ctx, &exists, `--sql
+	SELECT EXISTS (
+		SELECT 1 FROM users WHERE login = $1
+	);`, login)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (u userRepo) GetPassword(ctx context.Context, id int) (string, error) {
 	row := u.db.QueryRowContext(ctx, `SELECT password FROM users WHERE id=$1`, id)
 
 	var password string
@@ -66,7 +80,7 @@ func (u userRepo) GetUserPassword(ctx context.Context, id int) (string, error) {
 	return password, nil
 }
 
-func (u userRepo) UpdateUserPassword(ctx context.Context, id int, password string) error {
+func (u userRepo) UpdatePassword(ctx context.Context, id int, password string) error {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -96,7 +110,7 @@ func (u userRepo) UpdateUserPassword(ctx context.Context, id int, password strin
 	return nil
 }
 
-func (u userRepo) DeleteUser(ctx context.Context, id int) error {
+func (u userRepo) Delete(ctx context.Context, id int) error {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

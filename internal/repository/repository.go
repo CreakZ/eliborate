@@ -7,10 +7,11 @@ import (
 
 type BookRepo interface {
 	CreateBook(ctx context.Context, book domain.BookPlacement) (int, error)
-	// TODO
+
 	CreateCategory(ctx context.Context, category string) error
 
 	GetBooks(ctx context.Context, page, limit int) ([]domain.Book, error)
+	GetBooksTotalCount(ctx context.Context) (int, error)
 	GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error)
 	GetBooksByTextSearch(ctx context.Context, text string) ([]domain.Book, error)
 
@@ -20,23 +21,38 @@ type BookRepo interface {
 	DeleteBook(ctx context.Context, id int) error
 }
 
-type UserRepo interface {
-	CreateUser(ctx context.Context, user domain.UserCreate) (int, error)
-
-	GetUserPassword(ctx context.Context, id int) (string, error)
-
-	UpdateUserPassword(ctx context.Context, id int, password string) error
-
-	DeleteUser(ctx context.Context, id int) error
+type PublicRepo interface {
+	GetByLogin(ctx context.Context, userType, login string) (int, string, error)
 }
 
-// There cannot be less than 1 admin user
+type UserRepo interface {
+	Create(ctx context.Context, user domain.UserCreate) (int, error)
+
+	CheckByLogin(ctx context.Context, login string) (bool, error)
+
+	GetPassword(ctx context.Context, id int) (string, error)
+
+	UpdatePassword(ctx context.Context, id int, password string) error
+
+	Delete(ctx context.Context, id int) error
+}
+
 type AdminUserRepo interface {
-	CreateAdminUser(ctx context.Context, user domain.AdminUserCreate) (int, error)
+	// Create(ctx context.Context, user domain.AdminUserCreate) (int, error)
 
-	GetAdminUserPassword(ctx context.Context, id int) (string, error)
+	GetPassword(ctx context.Context, id int) (string, error)
 
-	UpdateAdminUserPassword(ctx context.Context, id int, password string) error
+	UpdatePassword(ctx context.Context, id int, password string) error
 
-	DeleteAdminUser(ctx context.Context, id int) error
+	// Delete(ctx context.Context, id int) error
+	// DeleteAll(ctx context.Context) error
+}
+
+type CategoryRepo interface {
+	CreateCategory(ctx context.Context, categoryName string) error
+
+	GetCategoryNameIfExists(ctx context.Context, name string) (bool, error) // вспомогательный метод для проверки существования
+	GetAllCategories(ctx context.Context) ([]string, error)
+
+	DeleteCategory(ctx context.Context, name string) error
 }

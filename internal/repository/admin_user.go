@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	domain "yurii-lib/internal/models/domain"
 	"yurii-lib/pkg/errs"
 
 	"github.com/jmoiron/sqlx"
@@ -18,27 +17,28 @@ func InitAdminUserRepo(db *sqlx.DB) AdminUserRepo {
 	}
 }
 
-func (u adminUserRepo) CreateAdminUser(ctx context.Context, user domain.AdminUserCreate) (int, error) {
-	tx, err := u.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, nil
+/*
+	func (u adminUserRepo) Create(ctx context.Context, user domain.AdminUserCreate) (int, error) {
+		tx, err := u.db.BeginTx(ctx, nil)
+		if err != nil {
+			return 0, nil
+		}
+
+		row := tx.QueryRowContext(ctx, `INSERT INTO admin_users VALUES ($1, $2) RETURNING id;`, user.Login, user.Password)
+
+		var id int
+		if err = row.Scan(&id); err != nil {
+			return 0, err
+		}
+
+		if err = tx.Commit(); err != nil {
+			return 0, err
+		}
+
+		return id, nil
 	}
-
-	row := tx.QueryRowContext(ctx, `INSERT INTO admin_users VALUES ($1, $2) RETURNING id;`, user.Login, user.Password)
-
-	var id int
-	if err = row.Scan(&id); err != nil {
-		return 0, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-func (u adminUserRepo) GetAdminUserPassword(ctx context.Context, id int) (string, error) {
+*/
+func (u adminUserRepo) GetPassword(ctx context.Context, id int) (string, error) {
 	row := u.db.QueryRowContext(ctx, `SELECT password FROM admin_users WHERE id=$1`, id)
 
 	var password string
@@ -49,7 +49,7 @@ func (u adminUserRepo) GetAdminUserPassword(ctx context.Context, id int) (string
 	return password, nil
 }
 
-func (u adminUserRepo) UpdateAdminUserPassword(ctx context.Context, id int, password string) error {
+func (u adminUserRepo) UpdatePassword(ctx context.Context, id int, password string) error {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -79,7 +79,8 @@ func (u adminUserRepo) UpdateAdminUserPassword(ctx context.Context, id int, pass
 	return nil
 }
 
-func (u adminUserRepo) DeleteAdminUser(ctx context.Context, id int) error {
+/*
+func (u adminUserRepo) Delete(ctx context.Context, id int) error {
 	var count int
 	rows, err := u.db.QueryContext(ctx, `SELECT COUNT(*) from admin_users`)
 	if err != nil {
@@ -123,3 +124,29 @@ func (u adminUserRepo) DeleteAdminUser(ctx context.Context, id int) error {
 
 	return nil
 }
+
+func (u adminUserRepo) DeleteAll(ctx context.Context) error {
+	tx := u.db.MustBeginTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+	})
+
+	res, err := u.db.ExecContext(ctx, `DELETE FROM admin_users`)
+	if err != nil {
+		tx.Rollback()
+
+		return err
+	}
+
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return fmt.Errorf("no rows affected")
+	}
+
+	if err = tx.Commit(); err != nil {
+		tx.Rollback()
+
+		return err
+	}
+
+	return nil
+}
+*/
