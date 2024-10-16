@@ -29,7 +29,7 @@ const (
 )
 
 func InitConfig() {
-	viper.SetConfigFile("../configs/.env")
+	viper.SetConfigFile("configs/.env")
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("config initialization error: %s", err.Error()))

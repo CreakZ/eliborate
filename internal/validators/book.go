@@ -5,7 +5,7 @@ import (
 	"yurii-lib/pkg/errs"
 )
 
-func ValidBookPlacement(book *dto.BookPlacement) (bool, error) {
+func ValidateBookPlacement(book *dto.BookPlacement) (bool, error) {
 	switch {
 	case book.Title == "":
 		return false, errs.ErrEmptyTitle
