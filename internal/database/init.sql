@@ -19,9 +19,13 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR
 );
 
-
 CREATE TABLE IF NOT EXISTS admin_users (
     id SERIAL PRIMARY KEY,
     login VARCHAR,
     password VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR
 );
