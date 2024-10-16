@@ -14,8 +14,8 @@ func (m Middleware) Authorize() gin.HandlerFunc {
 		auth := c.GetHeader("Authorization")
 
 		if !strings.Contains(auth, "Bearer") {
-			m.logger.InfoLogger.Info().Msg("no authorization information provided")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "no authorization information provided"})
+			m.logger.InfoLogger.Info().Msg("no authentication token provided")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "no authentication token provided"})
 			return
 		}
 

@@ -21,11 +21,26 @@ type BookHandlers interface {
 
 type UserHandlers interface {
 	Create(c *gin.Context)
+
+	GetPassword(c *gin.Context)
+
+	UpdatePassword(c *gin.Context)
+
+	Delete(c *gin.Context)
 }
 
 type AdminUserHandlers interface {
-	CreateAll(c *gin.Context)
-	Create(c *gin.Context)
+	// CreateAll(c *gin.Context)
+	// Create(c *gin.Context)
 
-	Update(c *gin.Context)
+	GetPassword(c *gin.Context)
+
+	UpdatePassword(c *gin.Context)
+
+	// Delete(c *gin.Context)
+}
+
+type PublicHandlers interface {
+	LoginAdminUser(c *gin.Context)
+	LoginUser(c *gin.Context)
 }
