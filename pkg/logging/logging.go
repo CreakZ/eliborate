@@ -1,4 +1,4 @@
-package lgr
+package logging
 
 import (
 	"errors"
@@ -16,18 +16,18 @@ type Log struct {
 func InitLogger() (*Log, *os.File, *os.File) {
 	zerolog.TimeFieldFormat = "02.01.2006 15:04:05"
 
-	if err := os.MkdirAll("logs", os.ModePerm); err != nil {
+	if err := os.MkdirAll("./cmd/logs", os.ModePerm); err != nil {
 		if !errors.Is(err, os.ErrExist) {
 			panic(fmt.Sprintf("an error '%s' occured while creating log directory", err.Error()))
 		}
 	}
 
-	infoFile, err := os.Create("logs/info.log")
+	infoFile, err := os.Create("./cmd/logs/info.log")
 	if err != nil {
 		panic(fmt.Sprintf("an error '%s' occured while creating info log file", err.Error()))
 	}
 
-	errorFile, err := os.Create("logs/error.log")
+	errorFile, err := os.Create("./cmd/logs/error.log")
 	if err != nil {
 		panic(fmt.Sprintf("an error '%s' occured while creating error log file", err.Error()))
 	}
