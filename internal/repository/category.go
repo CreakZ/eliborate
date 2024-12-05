@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"yurii-lib/pkg/errs"
+	"eliborate/internal/errs"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,46 +17,26 @@ func InitCategoryRepo(db *sqlx.DB) CategoryRepo {
 	}
 }
 
-func (c categoryRepo) CreateCategory(ctx context.Context, categoryName string) error {
+func (c categoryRepo) Create(ctx context.Context, categoryName string) error {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := tx.ExecContext(ctx, `INSERT INTO categories name VALUES $1`)
-	if err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO categories name VALUES $1`); err != nil {
 		return err
-	}
-
-	if affected, _ := res.RowsAffected(); affected == 0 {
-		return errs.ErrNoRowsAffected
 	}
 
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-
 		return err
 	}
 
 	return nil
 }
 
-func (c categoryRepo) GetCategoryNameIfExists(ctx context.Context, name string) (bool, error) {
-	var exists bool
-
-	query := `SELECT EXISTS (
-		SELECT 1 FROM categories WHERE name = $1
-	)`
-
-	if err := c.db.GetContext(ctx, &exists, query, name); err != nil {
-		return exists, err
-	}
-
-	return exists, nil
-}
-
-func (c categoryRepo) GetAllCategories(ctx context.Context) ([]string, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT name from categories`, nil)
+func (c categoryRepo) GetAll(ctx context.Context) ([]string, error) {
+	rows, err := c.db.QueryContext(ctx, `SELECT name from categories`)
 	if err != nil {
 		return []string{}, err
 	}
@@ -65,36 +45,53 @@ func (c categoryRepo) GetAllCategories(ctx context.Context) ([]string, error) {
 		categories []string
 		category   string
 	)
-
 	for rows.Next() {
 		if err = rows.Scan(&category); err != nil {
 			return []string{}, err
 		}
-
 		categories = append(categories, category)
 	}
 
 	return categories, nil
 }
 
-func (c categoryRepo) DeleteCategory(ctx context.Context, name string) error {
+func (c categoryRepo) Update(ctx context.Context, id int, newName string) error {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := tx.ExecContext(ctx, `DELETE FROM categories WHERE name = $1`, name)
+	res, err := tx.ExecContext(ctx, `UPDATE categories SET name = $1 WHERE id = $2`, newName, id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if affected, _ := res.RowsAffected(); affected == 0 {
+		tx.Rollback()
 		return errs.ErrNoRowsAffected
+	}
+
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (c categoryRepo) Delete(ctx context.Context, name string) error {
+	tx, err := c.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM categories WHERE name = $1`, name); err != nil {
+		return err
 	}
 
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-
 		return err
 	}
 
