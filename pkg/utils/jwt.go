@@ -1,8 +1,9 @@
-package jwt
+package utils
 
 import (
+	"eliborate/pkg/config"
+	"fmt"
 	"time"
-	"yurii-lib/pkg/config"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/viper"
@@ -14,32 +15,39 @@ type JWT interface {
 }
 
 type claim struct {
-	ID      int
-	IsAdmin bool
+	ID      int  `json:"id"`
+	IsAdmin bool `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
-type JWTUtil struct {
-	accessExpiration time.Duration
-	secret           string
+func (c claim) Valid() error {
+	if c.ID < 1 {
+		return fmt.Errorf("id value is less than 1")
+	}
+	return c.RegisteredClaims.Valid()
+}
+
+type jwtUtil struct {
+	expiresAt time.Duration
+	secret    string
 }
 
 func InitJWTUtil() JWT {
-	return JWTUtil{
-		accessExpiration: time.Duration(viper.GetInt(config.JWTAccessExpire)) * time.Minute,
-		secret:           viper.GetString(config.JWTSecret),
+	return jwtUtil{
+		expiresAt: time.Duration(viper.GetInt(config.JWTAccessExpire)) * time.Minute,
+		secret:    viper.GetString(config.JWTSecret),
 	}
 }
 
-func (j JWTUtil) CreateToken(id int, isAdmin bool) string {
-	accessExpires := time.Now().Add(j.accessExpiration)
+func (j jwtUtil) CreateToken(id int, isAdmin bool) string {
+	expiresAt := time.Now().Add(j.expiresAt)
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim{
 		ID:      id,
 		IsAdmin: isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: &jwt.NumericDate{
-				Time: accessExpires,
+				Time: expiresAt,
 			},
 		},
 	})
@@ -49,10 +57,10 @@ func (j JWTUtil) CreateToken(id int, isAdmin bool) string {
 	return accessSigned
 }
 
-func (j JWTUtil) Authorize(token string) (claim, bool, error) {
+func (j jwtUtil) Authorize(token string) (claim, bool, error) {
 	var userClaim claim
 
-	jwtToken, err := jwt.ParseWithClaims(token, userClaim, func(t *jwt.Token) (interface{}, error) {
+	jwtToken, err := jwt.ParseWithClaims(token, &userClaim, func(t *jwt.Token) (interface{}, error) {
 		return []byte(j.secret), nil
 	})
 	if err != nil {
