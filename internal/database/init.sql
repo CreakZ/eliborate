@@ -1,31 +1,90 @@
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE TABLE IF NOT EXISTS categories (
+    id   SERIAL  PRIMARY KEY,
+    name VARCHAR UNIQUE
+);
+
+-- Пример категорий
+INSERT INTO categories (name) 
+VALUES
+    ('Не определено'),
+	('Библиотека всемирной литературы'),
+	('Собрание сочинений'),
+	('Художественная отечественная литература'),
+	('Художественная зарубежная литература'),
+	('Поэзия отечественная'),
+	('Поэзия зарубежная'),
+	('Детская отечественная литература'),
+	('Детская зарубежная литература'),
+	('Моя первая книга'),
+	('Книги нашего детства'),
+	('Моё первое собрание сочинений'),
+	('Сказки отечественные'),
+	('Сказки зарубежные'),
+	('Большая библиотека приключений и научной фантастики'),
+	('Библиотека приключений и фантастики'),
+	('Классическая библиотека приключений и фантастики'),
+	('Ретро библиотека приключений и фантастики'),
+	('Приключения. Отечественная литература'),
+	('Приключения. Зарубежная литература'),
+	('Фантастика. Отечественная литература'),
+	('Фантастика. Зарубежная литература'),
+	('История России. Отечественные авторы'),
+	('История России. Зарубежные авторы'),
+	('Летописи'),
+	('Зарубежная история'),
+	('Нумизматика'),
+	('Альтернативная история'),
+	('Библиотека отечественной общественной мысли'),
+	('Духовная литература'),
+	('Справочная литература'),
+	('Энциклопедический словарь Терра'),
+	('Энциклопедический словарь Брокгауза и Эфрона'),
+	('Энциклопедии'),
+	('Великие путешествия'),
+	('Великие полководцы'),
+	('Учебная литература'),
+	('Настольные игры'),
+	('Словарь русского языка'),
+	('Русский язык'),
+	('Филология'),
+	('География'),
+	('Архитектура'),
+	('Искусство'),
+	('Живопись'),
+	('Сборные издания'),
+	('Строительство'),
+	('Домашнее хозяйство'),
+	('Сад, огород'),
+	('Кухня'),
+	('Медицина');
+
 
 CREATE TABLE IF NOT EXISTS books (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR NOT NULL,
-    description TEXT NULL,
-    category INTEGER,
-    authors VARCHAR[] NOT NULL,
-    is_foreign BOOLEAN NOT NULL,
-    cover_url VARCHAR NULL,
-    rack INTEGER,
-    shelf INTEGER
+    id          SERIAL    PRIMARY KEY,
+    title       VARCHAR   NOT NULL,
+    description TEXT      NULL,
+    category_id INTEGER,
+    authors     VARCHAR[] NOT NULL,
+    cover_urls  VARCHAR[] NULL,
+    rack        INTEGER,
+    shelf       INTEGER,
+
+	FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    login VARCHAR,
+CREATE TABLE IF NOT EXISTS clients (
+    id       SERIAL  PRIMARY KEY,
+    login    VARCHAR UNIQUE,
     password VARCHAR,
-    name VARCHAR
+    name     VARCHAR
 );
 
-CREATE TABLE IF NOT EXISTS admin_users (
-    id SERIAL PRIMARY KEY,
-    login VARCHAR,
+CREATE TABLE IF NOT EXISTS admins (
+    id       SERIAL  PRIMARY KEY,
+    login    VARCHAR UNIQUE,
     password VARCHAR
 );
 
-CREATE TABLE IF NOT EXISTS categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR
-);
+INSERT INTO admins (login, password)
+VALUES 
+	('yurii_rusakov62', 'Rusakov_62')
