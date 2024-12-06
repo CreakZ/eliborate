@@ -7,8 +7,8 @@ import (
 type BookHandlers interface {
 	CreateBook(c *gin.Context)
 
-	GetBookByISBN(c *gin.Context)
-
+	GetBookById(c *gin.Context)
+	GetBookByIsbn(c *gin.Context)
 	GetBooks(c *gin.Context)
 	GetBooksByRack(c *gin.Context)
 	GetBooksByTextSearch(c *gin.Context)
@@ -19,10 +19,20 @@ type BookHandlers interface {
 	DeleteBook(c *gin.Context)
 }
 
+type CategoryHandlers interface {
+	Create(c *gin.Context)
+
+	GetAll(c *gin.Context)
+
+	Update(c *gin.Context)
+
+	Delete(c *gin.Context)
+}
+
 type UserHandlers interface {
 	Create(c *gin.Context)
 
-	GetPassword(c *gin.Context)
+	// GetPassword(c *gin.Context)
 
 	UpdatePassword(c *gin.Context)
 
@@ -30,14 +40,9 @@ type UserHandlers interface {
 }
 
 type AdminUserHandlers interface {
-	// CreateAll(c *gin.Context)
-	// Create(c *gin.Context)
-
-	GetPassword(c *gin.Context)
+	// GetPassword(c *gin.Context)
 
 	UpdatePassword(c *gin.Context)
-
-	// Delete(c *gin.Context)
 }
 
 type PublicHandlers interface {

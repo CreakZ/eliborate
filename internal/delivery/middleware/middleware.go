@@ -1,16 +1,16 @@
 package middleware
 
 import (
-	"yurii-lib/pkg/lgr"
-	"yurii-lib/pkg/utils/jwt"
+	"eliborate/pkg/logging"
+	"eliborate/pkg/utils"
 )
 
 type Middleware struct {
-	jwtUtil jwt.JWT
-	logger  *lgr.Log
+	jwtUtil utils.JWT
+	logger  *logging.Log
 }
 
-func InitMiddleware(util jwt.JWT, logger *lgr.Log) Middleware {
+func InitMiddleware(util utils.JWT, logger *logging.Log) Middleware {
 	return Middleware{
 		jwtUtil: util,
 		logger:  logger,

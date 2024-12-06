@@ -1,48 +1,41 @@
 package handlers
 
 import (
+	"eliborate/internal/service"
+	utils "eliborate/pkg/utils"
 	"net/http"
-	"yurii-lib/internal/constants"
-	"yurii-lib/internal/service"
-	utils "yurii-lib/pkg/utils/compare"
-	"yurii-lib/pkg/utils/jwt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-)
-
-const (
-	token       = "token"
-	refreshUUID = "refresh_uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type publicHandlers struct {
 	publicService service.PublicService
-	jwt           jwt.JWT
+	jwt           utils.JWT
 }
 
-func InitPublicHandlers(publicService service.PublicService, jwt jwt.JWT) PublicHandlers {
+func InitPublicHandlers(publicService service.PublicService, jwt utils.JWT) PublicHandlers {
 	return publicHandlers{
 		publicService: publicService,
 		jwt:           jwt,
 	}
 }
 
-// @Summary Logs in an admin user
+// @Summary Login an admin user
 // @Description Logs in an admin user and returns an access token if the login credentials are valid.
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param login body string true "Login of the admin user"
 // @Param password body string true "Password of the admin user"
-// @Success 201 {object} map[string]string "Access token"
+// @Success 201 {object} map[string]string "Signed JWT"
 // @Failure 400 {object} map[string]string "Bad Request"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /public/admin [post]
 func (p publicHandlers) LoginAdminUser(c *gin.Context) {
-	var userData = struct {
-		Login    string `json:"login" validate:"required,containsany"`
-		Password string `json:"password" validate:"required,containsany"`
+	userData := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
 	}{
 		Login:    "",
 		Password: "",
@@ -53,27 +46,19 @@ func (p publicHandlers) LoginAdminUser(c *gin.Context) {
 		return
 	}
 
-	validate := validator.New()
-	if err := validate.Struct(userData); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	id, password, err := p.publicService.GetByLogin(c.Request.Context(), constants.TypeAdminUsers, userData.Login)
+	user, err := p.publicService.GetAdminUserByLogin(c.Request.Context(), userData.Login)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
-	equal := utils.ComparePasswords([]byte(userData.Password), []byte(password))
-	if !equal {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "wrong password"})
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userData.Password)); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "wrong password provided"})
 		return
 	}
 
-	accessToken := p.jwt.CreateToken(id, true)
-
-	c.JSON(http.StatusCreated, gin.H{token: accessToken})
+	accessToken := p.jwt.CreateToken(user.ID, true)
+	c.JSON(http.StatusCreated, gin.H{"jwt": accessToken})
 }
 
 // @Summary Logs in a regular user
@@ -86,11 +71,11 @@ func (p publicHandlers) LoginAdminUser(c *gin.Context) {
 // @Success 201 {object} map[string]string "Access token"
 // @Failure 400 {object} map[string]string "Bad Request"
 // @Failure 404 {object} map[string]string "Not Found"
-// @Router /login/user [post]
+// @Router /public/user [post]
 func (p publicHandlers) LoginUser(c *gin.Context) {
-	var userData = struct {
-		Login    string `json:"login" validate:"required,containsany"`
-		Password string `json:"password" validate:"required,containsany"`
+	userData := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
 	}{
 		Login:    "",
 		Password: "",
@@ -101,25 +86,17 @@ func (p publicHandlers) LoginUser(c *gin.Context) {
 		return
 	}
 
-	validate := validator.New()
-	if err := validate.Struct(userData); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	id, password, err := p.publicService.GetByLogin(c.Request.Context(), constants.TypeUsers, userData.Login)
+	user, err := p.publicService.GetUserByLogin(c.Request.Context(), userData.Login)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err.Error()})
 		return
 	}
 
-	equal := utils.ComparePasswords([]byte(userData.Password), []byte(password))
-	if !equal {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "wrong password"})
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userData.Password)); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "wrong password provided"})
 		return
 	}
 
-	accessToken := p.jwt.CreateToken(id, false)
-
-	c.JSON(http.StatusCreated, gin.H{token: accessToken})
+	accessToken := p.jwt.CreateToken(user.ID, false)
+	c.JSON(http.StatusCreated, gin.H{"jwt": accessToken})
 }
