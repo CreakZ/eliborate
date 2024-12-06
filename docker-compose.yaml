@@ -1,0 +1,65 @@
+services:
+  api:
+    container_name: lib_api
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  postgres:
+    container_name: lib_db
+    image: postgres:16.3
+    env_file:
+      - ./configs/.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./internal/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: lib_cache
+    image: redis:latest
+    env_file:
+      - ./configs/.env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:6379"
+
+  meilisearch:
+    container_name: lib_search
+    image: getmeili/meilisearch:latest
+    env_file:
+      - ./configs/.env
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+    ports:
+      - "${MEILI_PORT}:7700"
+    volumes:
+      - mdb_data:/meili_data/data.ms/
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7700/health"]
+      interval: 1m30s
+      timeout: 1s
+      retries: 3
+      start_period: 15s
+
+
+volumes:
+  pg_data:
+  mdb_data:
