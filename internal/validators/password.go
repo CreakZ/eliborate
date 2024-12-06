@@ -5,23 +5,33 @@ import (
 	"unicode"
 )
 
-// Пароль должен содержать цифры и заглавные буквы, а также иметь длину от 8 до 50 символов
+// Password should contain at least 1 digit and upper-case letter and have length 8 to 64 symbols
 
 var (
 	ErrShortPassword    = fmt.Errorf("password is too short")
 	ErrInsecurePassword = fmt.Errorf("provided password is insecure")
 )
 
-func ValidatePassword(password string) bool {
-	if len(password) < 8 || len(password) > 50 {
-		return false
+func newPasswordSecurityError(message string) error {
+	return fmt.Errorf("provided password is insecure: %s", message)
+}
+
+func IsPasswordValid(password string) error {
+	if plen := len(password); plen < 8 {
+		return newPasswordSecurityError("password is too short")
+	} else if plen > 64 {
+		return newPasswordSecurityError("password is too long")
 	}
 
-	if !(containsDigits(password) && containsUpperCase(password)) {
-		return false
+	if !containsDigits(password) {
+		return newPasswordSecurityError("password should contain digits")
 	}
 
-	return true
+	if !containsUpperCase(password) {
+		return newPasswordSecurityError("password should contain uppercase letters")
+	}
+
+	return nil
 }
 
 func containsUpperCase(s string) bool {

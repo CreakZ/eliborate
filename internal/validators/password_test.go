@@ -1,8 +1,8 @@
 package validators_test
 
 import (
+	"eliborate/internal/validators"
 	"testing"
-	"yurii-lib/internal/validators"
 )
 
 func TestValidatePassword(t *testing.T) {
@@ -15,8 +15,8 @@ func TestValidatePassword(t *testing.T) {
 	}
 
 	for _, pass := range passwords {
-		if matched := validators.ValidatePassword(pass); !matched {
-			t.Errorf("%s string is not valid password\n", pass)
+		if err := validators.IsPasswordValid(pass); err != nil {
+			t.Errorf("%s string is not valid password: %s\n", pass, err.Error())
 			continue
 		}
 	}

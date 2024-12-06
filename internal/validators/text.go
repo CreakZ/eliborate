@@ -1,6 +1,8 @@
 package validators
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func ValidateTextQuery(text string) error {
 	if text == "" {
