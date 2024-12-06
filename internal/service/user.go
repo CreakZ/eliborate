@@ -2,22 +2,23 @@ package service
 
 import (
 	"context"
+	"eliborate/internal/convertors"
+	"eliborate/internal/models/dto"
+	"eliborate/internal/repository"
+	"eliborate/internal/validators"
 	"fmt"
-	"yurii-lib/internal/convertors"
-	"yurii-lib/internal/models/dto"
-	"yurii-lib/internal/repository"
 
-	"yurii-lib/pkg/lgr"
+	"eliborate/pkg/logging"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type userService struct {
 	repo   repository.UserRepo
-	logger *lgr.Log
+	logger *logging.Log
 }
 
-func InitUserService(repo repository.UserRepo, logger *lgr.Log) UserService {
+func InitUserService(repo repository.UserRepo, logger *logging.Log) UserService {
 	return userService{
 		repo:   repo,
 		logger: logger,
@@ -26,6 +27,10 @@ func InitUserService(repo repository.UserRepo, logger *lgr.Log) UserService {
 
 func (u userService) Create(ctx context.Context, user dto.UserCreate) (int, error) {
 	userConv := convertors.ToDomainUserCreate(user)
+
+	if validErr := validators.IsPasswordValid(user.Password); validErr != nil {
+		return 0, validErr
+	}
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userConv.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -43,27 +48,11 @@ func (u userService) Create(ctx context.Context, user dto.UserCreate) (int, erro
 	return id, nil
 }
 
-func (u userService) CheckByLogin(ctx context.Context, login string) (bool, error) {
-	exists, err := u.repo.CheckByLogin(ctx, login)
-	if err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("get user password error '%s'", err.Error()))
-		return false, err
-	}
-
-	return exists, nil
-}
-
-func (u userService) GetPassword(ctx context.Context, id int) (string, error) {
-	password, err := u.repo.GetPassword(ctx, id)
-	if err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("get user password error '%s'", err.Error()))
-		return "", err
-	}
-
-	return password, nil
-}
-
 func (u userService) UpdatePassword(ctx context.Context, id int, password string) error {
+	if validErr := validators.IsPasswordValid(password); validErr != nil {
+		return validErr
+	}
+
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err

@@ -2,34 +2,29 @@ package service
 
 import (
 	"context"
+	"eliborate/internal/convertors"
+	"eliborate/internal/models/dto"
+	"eliborate/internal/repository"
+	"eliborate/pkg/logging"
 	"fmt"
-	"yurii-lib/internal/convertors"
-	"yurii-lib/internal/models/dto"
-	"yurii-lib/internal/repository"
-	"yurii-lib/pkg/lgr"
 )
 
 var ErrWrongCategory = fmt.Errorf("wrong category name")
 
 type bookService struct {
 	repo repository.BookRepo
-	log  *lgr.Log
+	log  *logging.Log
 }
 
-func InitBookService(repo repository.BookRepo, log *lgr.Log) BookService {
+func InitBookService(repo repository.BookRepo, log *logging.Log) BookService {
 	return bookService{
 		repo: repo,
 		log:  log,
 	}
 }
 
-func (b bookService) CreateBook(ctx context.Context, book dto.BookPlacement) (int, error) {
-	bookConv := convertors.ToDomainBookPlacement(book)
-
-	if bookConv.Category == -1 {
-		b.log.InfoLogger.Info().Msg("wrong book category")
-		return 0, ErrWrongCategory
-	}
+func (b bookService) CreateBook(ctx context.Context, book dto.BookCreate) (int, error) {
+	bookConv := convertors.ToDomainBookCreate(book)
 
 	userID, err := b.repo.CreateBook(ctx, bookConv)
 	if err != nil {
@@ -40,18 +35,30 @@ func (b bookService) CreateBook(ctx context.Context, book dto.BookPlacement) (in
 	return userID, nil
 }
 
-func (b bookService) GetBooks(ctx context.Context, page, limit int) ([]dto.Book, error) {
-	booksRaw, err := b.repo.GetBooks(ctx, page, limit)
+func (b bookService) GetBookById(ctx context.Context, id int) (dto.Book, error) {
+	book, err := b.repo.GetBookById(ctx, id)
+	if err != nil {
+		return dto.Book{}, err
+	}
+	return convertors.ToDtoBook(book), nil
+}
+
+// TODO
+func (b bookService) GetBookByIsbn(ctx context.Context, isbn string) (dto.Book, error) {
+	return dto.Book{}, nil
+}
+
+func (b bookService) GetBooks(ctx context.Context, page, limit int, filter ...interface{}) ([]dto.Book, error) {
+	shiftedPage := page - 1
+	booksRaw, err := b.repo.GetBooks(ctx, shiftedPage, limit)
 	if err != nil {
 		return []dto.Book{}, err
 	}
 
-	books := make([]dto.Book, len(booksRaw))
-
-	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
+	books := make([]dto.Book, 0, len(booksRaw))
+	for _, book := range booksRaw {
+		books = append(books, convertors.ToDtoBook(book))
 	}
-
 	return books, nil
 }
 
@@ -60,7 +67,6 @@ func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return count, nil
 }
 
@@ -71,28 +77,25 @@ func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, 
 		return []dto.Book{}, err
 	}
 
-	var books = make([]dto.Book, len(booksRaw))
+	books := make([]dto.Book, len(booksRaw))
 
 	for i := range booksRaw {
 		books[i] = convertors.ToDtoBook(booksRaw[i])
 	}
-
 	return books, err
 }
 
-func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]dto.Book, error) {
-	booksRaw, err := b.repo.GetBooksByTextSearch(ctx, text)
+func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]dto.BookSearch, error) {
+	booksDomain, err := b.repo.GetBooksByTextSearch(ctx, text)
 	if err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by fulltext search %s", err.Error()))
-		return []dto.Book{}, err
+		return []dto.BookSearch{}, err
 	}
 
-	var books = make([]dto.Book, len(booksRaw))
-
-	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
+	books := make([]dto.BookSearch, len(booksDomain))
+	for i := range booksDomain {
+		books[i] = convertors.ToDtoBookSearch(booksDomain[i])
 	}
-
 	return books, nil
 }
 
@@ -103,7 +106,6 @@ func (b bookService) UpdateBookInfo(ctx context.Context, id int, book dto.Update
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book info %v", err.Error()))
 		return err
 	}
-
 	return nil
 }
 
@@ -112,7 +114,6 @@ func (b bookService) UpdateBookPlacement(ctx context.Context, id, rack, shelf in
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book placement %v", err.Error()))
 		return err
 	}
-
 	return nil
 }
 
@@ -121,6 +122,5 @@ func (b bookService) DeleteBook(ctx context.Context, id int) error {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("delete book %v", err.Error()))
 		return err
 	}
-
 	return nil
 }
