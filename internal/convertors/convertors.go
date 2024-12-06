@@ -67,13 +67,6 @@ func ToDomainBookPlacement(book dto.BookPlacement) domain.BookPlacement {
 	}
 }
 
-func ToDomainBook(book dto.Book) domain.Book {
-	return domain.Book{
-		ID:            book.ID,
-		BookPlacement: ToDomainBookPlacement(book.BookPlacement),
-	}
-}
-
 func ToDtoBookInfo(book domain.BookInfo) dto.BookInfo {
 	var desc *string
 	if book.Description.Valid {
@@ -113,7 +106,16 @@ func ToDtoBookCreate(book domain.BookCreate) dto.BookCreate {
 func ToDtoBook(book domain.Book) dto.Book {
 	return dto.Book{
 		ID:            book.ID,
+		BookInfo:      ToDtoBookInfo(book.BookInfo),
 		BookPlacement: ToDtoBookPlacement(book.BookPlacement),
+	}
+}
+
+func ToDomainBook(book dto.Book) domain.Book {
+	return domain.Book{
+		ID:            book.ID,
+		BookInfo:      ToDomainBookInfo(book.BookInfo),
+		BookPlacement: ToDomainBookPlacement(book.BookPlacement),
 	}
 }
 
