@@ -1,26 +1,25 @@
-// @title API Documentation
+// @title Eliborate API Documentation
 // @version 1.0
-// @description This is a sample API documentation for your project
-// @termsOfService http://example.com/terms/
+// @description Swagger OpenAPI documentation for Eliborate service
 
-// @contact.name Maxim
+// @contact.name Maxim Rusakov
 // @contact.email shejustwannagethigh@yandex.ru
 
-// @host localhost:8080
-// @BasePath /
+// @BasePath /api/v1
 
 package main
 
 import (
+	"eliborate/internal/delivery/middleware"
+	"eliborate/internal/delivery/routers"
+	"eliborate/pkg/config"
+	"eliborate/pkg/logging"
+	"eliborate/pkg/storage"
+	"eliborate/pkg/utils"
 	"fmt"
-	"yurii-lib/internal/delivery/middleware"
-	"yurii-lib/internal/delivery/routers"
-	"yurii-lib/pkg/config"
-	"yurii-lib/pkg/database"
-	"yurii-lib/pkg/lgr"
-	"yurii-lib/pkg/utils/jwt"
+	"net/http"
 
-	_ "yurii-lib/docs"
+	_ "eliborate/docs"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -30,43 +29,55 @@ import (
 func main() {
 	server := gin.Default()
 
-	server.StaticFile("/swagger", "./docs/swagger.json")
+	server.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-	// Инициализация логгера
-	logger, infoFile, errorFile := lgr.InitLogger()
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	})
+
+	server.StaticFile("/docs", "./docs/swagger.json")
+	server.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Init logger
+	logger, infoFile, errorFile := logging.InitLogger()
 	defer infoFile.Close()
 	defer errorFile.Close()
 	logger.InfoLogger.Info().Msg("Logger initialized successfully")
 
-	// Инициализация конфига
+	// Init cfg
 	config.InitConfig()
 	logger.InfoLogger.Info().Msg("Config initialized successfully")
 
-	// Инициализация подключения к БД
-	db := database.ConnectDB()
-	logger.InfoLogger.Info().Msg("Database initialized successfully")
+	// Init db conn
+	db := storage.NewPostgresConn()
+	logger.InfoLogger.Info().Msg("Postgres initialized successfully")
 
-	// Инициализация клиента S3-хранилища
-	// svc := database.InitS3Client()
-	// logger.InfoLogger.Info().Msg("S3 initialized successfully")
+	// Init redis client
+	cache := storage.NewRedisCacheManager()
 
-	// Инициализация клиента Redis
-	cache := database.InitCache()
-
-	// Инициализация JWT
-	jwtUtil := jwt.InitJWTUtil()
+	// Init jwt utils
+	jwtUtil := utils.InitJWTUtil()
 	logger.InfoLogger.Info().Msg("JWT initialized successfully")
 
-	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// Инициализация middleware
-	middlewarrior := middleware.InitMiddleware(jwtUtil, logger)
+	// Init middleware
+	middleW := middleware.InitMiddleware(jwtUtil, logger)
 	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
 
-	// Инициализация маршрутизаторов
-	routers.InitRouting(server, db, cache, nil, logger, jwtUtil, middlewarrior)
+	// Init Meilisearch client
+	search := storage.NewMeiliClient()
+	logger.InfoLogger.Info().Msg("Search engine initialized successfully")
 
-	// Запуск сервера
+	// Init routing
+	routers.InitRouting(server, db, cache, nil, logger, jwtUtil, middleW, search)
+
+	// Server startup
 	if err := server.Run(":8080"); err != nil {
 		panic(fmt.Errorf("server run error: %s", err))
 	}
