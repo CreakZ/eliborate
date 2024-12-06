@@ -1,32 +1,38 @@
 package routers
 
 import (
-	"yurii-lib/internal/delivery/middleware"
-	"yurii-lib/pkg/lgr"
-	"yurii-lib/pkg/utils/jwt"
+	"eliborate/internal/delivery/middleware"
+	"eliborate/pkg/logging"
+	"eliborate/pkg/storage"
+	"eliborate/pkg/utils"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
+	"github.com/meilisearch/meilisearch-go"
 )
 
 func InitRouting(
 	engine *gin.Engine,
 	db *sqlx.DB,
-	cache *redis.Client,
+	cache *storage.RedisCache,
 	storage *s3.S3,
-	logger *lgr.Log,
-	jwt jwt.JWT,
+	logger *logging.Log,
+	jwt utils.JWT,
 	middleware middleware.Middleware,
+	search meilisearch.IndexManager,
 ) {
-	booksRG := engine.Group("/books")
-	publicRG := engine.Group("/public")
-	userRG := engine.Group("/user")
-	adminUserRG := engine.Group("/admin")
+	basePath := engine.Group("/api/v1")
 
-	InitBooksRouter(booksRG, db, cache, storage, logger, middleware)
+	booksRG := basePath.Group("/books")
+	publicRG := basePath.Group("/public")
+	userRG := basePath.Group("/users")
+	adminUserRG := basePath.Group("/admins")
+	catRG := basePath.Group("/categories")
+
+	InitBooksRouter(booksRG, db, cache, logger, middleware, search)
 	InitPublicRouter(publicRG, db, logger, jwt)
-	InitUserRouter(userRG, db, logger)
-	InitAdminUsersRouter(adminUserRG, db, logger)
+	InitUserRouter(userRG, db, middleware, logger)
+	InitAdminUsersRouter(adminUserRG, db, middleware, logger)
+	InitCategoryRouter(catRG, db, middleware, logger)
 }

@@ -1,26 +1,20 @@
 package routers
 
 import (
-	"yurii-lib/internal/delivery/handlers"
-	"yurii-lib/internal/repository"
-	"yurii-lib/internal/service"
-	"yurii-lib/pkg/lgr"
+	"eliborate/internal/delivery/handlers"
+	"eliborate/internal/delivery/middleware"
+	"eliborate/internal/repository"
+	"eliborate/internal/service"
+	"eliborate/pkg/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitAdminUsersRouter(group *gin.RouterGroup, db *sqlx.DB, logger *lgr.Log) {
+func InitAdminUsersRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware, logger *logging.Log) {
 	adminRepo := repository.InitAdminUserRepo(db)
 	adminService := service.InitAdminUserService(adminRepo, logger)
 	adminHandlers := handlers.InitAdminUserHandlers(adminService)
 
-	// group.POST("/create", adminHandlers.Create)
-	// group.POST("/create_all", adminHandlers.CreateAll)
-
-	group.GET("", adminHandlers.GetPassword)
-
-	group.PUT("", adminHandlers.UpdatePassword)
-
-	// group.DELETE("/delete", adminHandlers.Delete)
+	group.PATCH("", middleware.Authorize(), adminHandlers.UpdatePassword)
 }
