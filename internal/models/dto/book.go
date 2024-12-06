@@ -5,28 +5,37 @@ type BookInfo struct {
 	Authors     []string `json:"authors"`
 	Description *string  `json:"description"`
 	Category    string   `json:"category"`
-	IsForeign   bool     `json:"is_foreign"`
-
-	// Обложка книги. Хранит URL изображения
-	CoverURL *string `json:"logo"`
-}
-
-type UpdateBookInfo struct {
-	Title       *string   `json:"title"`
-	Authors     *[]string `json:"authors"`
-	Description *string   `json:"description"`
-	Category    *string   `json:"category"`
-	IsForeign   *bool     `json:"is_foreign"`
-	CoverURL    *string   `json:"logo"`
+	CoverUrls   []string `json:"cover_urls"`
 }
 
 type BookPlacement struct {
-	BookInfo
 	Rack  int `json:"rack"`
 	Shelf int `json:"shelf"`
 }
 
+type BookCreate struct {
+	BookInfo
+	BookPlacement
+}
+
 type Book struct {
 	ID int `json:"id"`
+	BookInfo
 	BookPlacement
+}
+
+type UpdateBookInfo struct {
+	Title       *string  `json:"title"`
+	Authors     []string `json:"authors"`
+	Description *string  `json:"description"`
+	Category    *string  `json:"category"`
+	CoverUrls   []string `json:"cover_urls"`
+}
+
+type BookSearch struct {
+	ID          int      `json:"id"`
+	Title       string   `json:"title"`
+	Authors     []string `json:"authors"`
+	Description string   `json:"description"`
+	Category    string   `json:"category"`
 }

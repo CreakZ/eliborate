@@ -12,5 +12,5 @@ type UserCreate struct {
 
 type User struct {
 	ID int `json:"id"`
-	UserInfo
+	UserCreate
 }

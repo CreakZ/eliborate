@@ -11,5 +11,5 @@ type AdminUserCreate struct {
 
 type AdminUser struct {
 	ID int `json:"id"`
-	AdminUserInfo
+	AdminUserCreate
 }
