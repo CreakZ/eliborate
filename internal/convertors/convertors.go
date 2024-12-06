@@ -2,89 +2,16 @@ package convertors
 
 import (
 	"database/sql"
-	"fmt"
-	"strings"
-	domain "yurii-lib/internal/models/domain"
-	dto "yurii-lib/internal/models/dto"
+	domain "eliborate/internal/models/domain"
+	dto "eliborate/internal/models/dto"
+	"reflect"
 
 	"github.com/lib/pq"
 )
 
-var categories = []string{
-	"Не определено",
-	"Библиотека всемирной литературы",
-	"Собрание сочинений",
-	"Художественная отечественная литература",
-	"Художественная зарубежная литература",
-	"Поэзия отечественная",
-	"Поэзия зарубежная",
-	"Детская отечественная литература",
-	"Детская зарубежная литература",
-	"Моя первая книга",
-	"Книги нашего детства",
-	"Моё первое собрание сочинений",
-	"Сказки отечественные",
-	"Сказки зарубежные",
-	"Большая библиотека приключений и научной фантастики",
-	"Библиотека приключений и фантастики",
-	"Классическая библиотека приключений и фантастики",
-	"Ретро библиотека приключений и фантастики",
-	"Приключения. Отечественная литература",
-	"Приключения. Зарубежная литература",
-	"Фантастика. Отечественная литература",
-	"Фантастика. Зарубежная литература",
-	"История России. Отечественные авторы",
-	"История России. Зарубежные авторы",
-	"Летописи",
-	"Зарубежная история",
-	"Нумизматика",
-	"Альтернативная история",
-	"Библиотека отечественной общественной мысли",
-	"Духовная литература",
-	"Справочная литература",
-	"Энциклопедический словарь Терра",
-	"Энциклопедический словарь Брокгауза и Эфрона",
-	"Энциклопедии",
-	"Великие путешествия",
-	"Великие полководцы",
-	"Учебная литература",
-	"Настольные игры",
-	"Словарь русского языка",
-	"Русский язык",
-	"Филология",
-	"География",
-	"Архитектура",
-	"Искусство",
-	"Живопись",
-	"Сборные издания",
-	"Строительство",
-	"Домашнее хозяйство",
-	"Сад, огород",
-	"Кухня",
-	"Медицина",
-}
-
-func CategoryToInt(category string) int {
-	for i := range categories {
-		if strings.Compare(categories[i], category) == 0 {
-			return i
-		}
-	}
-
-	// -1 возвращается в том случае, если приведенная в запросе категория не соотвествует ни одной из перечисленных
-	return -1
-}
-
-func CategoryToString(category int) string {
-	return categories[category]
-}
-
 func ToDomainBookInfo(book dto.BookInfo) domain.BookInfo {
-	var cover sql.NullString
-	if book.CoverURL != nil {
-		cover.String = *book.CoverURL
-		cover.Valid = true
-	}
+	var coverUrls pq.StringArray
+	coverUrls.Scan(book.CoverUrls)
 
 	var desc sql.NullString
 	if book.Description != nil {
@@ -96,19 +23,17 @@ func ToDomainBookInfo(book dto.BookInfo) domain.BookInfo {
 		Title:       book.Title,
 		Authors:     book.Authors,
 		Description: desc,
-		Category:    CategoryToInt(book.Category),
-		IsForeign:   book.IsForeign,
-		CoverURL:    cover,
+		Category:    book.Category,
+		CoverUrls:   coverUrls,
 	}
 }
 
 func UpdateBookInfoToMap(book dto.UpdateBookInfo) map[string]interface{} {
 	values := make(map[string]interface{}, 1)
 
-	if book.Authors != nil {
+	if len(book.Authors) != 0 {
 		var authors pq.StringArray
-
-		authors.Scan(*book.Authors)
+		authors.Scan(book.Authors)
 
 		values["authors"] = authors
 	}
@@ -121,28 +46,24 @@ func UpdateBookInfoToMap(book dto.UpdateBookInfo) map[string]interface{} {
 		values["description"] = *book.Description
 	}
 
-	if book.IsForeign != nil {
-		values["is_foreign"] = *book.IsForeign
-	}
-
 	if book.Title != nil {
 		values["title"] = *book.Title
 	}
 
-	if book.CoverURL != nil {
-		values["logo"] = *book.CoverURL
-	}
+	if len(book.CoverUrls) != 0 {
+		var coverUrls pq.StringArray
+		coverUrls.Scan(book.CoverUrls)
 
-	fmt.Println(len(values))
+		values["cover_urls"] = coverUrls
+	}
 
 	return values
 }
 
 func ToDomainBookPlacement(book dto.BookPlacement) domain.BookPlacement {
 	return domain.BookPlacement{
-		BookInfo: ToDomainBookInfo(book.BookInfo),
-		Rack:     book.Rack,
-		Shelf:    book.Shelf,
+		Rack:  book.Rack,
+		Shelf: book.Shelf,
 	}
 }
 
@@ -154,11 +75,6 @@ func ToDomainBook(book dto.Book) domain.Book {
 }
 
 func ToDtoBookInfo(book domain.BookInfo) dto.BookInfo {
-	var cover *string
-	if book.CoverURL.Valid {
-		cover = &book.CoverURL.String
-	}
-
 	var desc *string
 	if book.Description.Valid {
 		desc = &book.Description.String
@@ -168,17 +84,29 @@ func ToDtoBookInfo(book domain.BookInfo) dto.BookInfo {
 		Title:       book.Title,
 		Authors:     book.Authors,
 		Description: desc,
-		Category:    CategoryToString(book.Category),
-		IsForeign:   book.IsForeign,
-		CoverURL:    cover,
+		Category:    book.Category,
+		CoverUrls:   book.CoverUrls,
 	}
 }
 
 func ToDtoBookPlacement(book domain.BookPlacement) dto.BookPlacement {
 	return dto.BookPlacement{
-		BookInfo: ToDtoBookInfo(book.BookInfo),
-		Rack:     book.Rack,
-		Shelf:    book.Shelf,
+		Rack:  book.Rack,
+		Shelf: book.Shelf,
+	}
+}
+
+func ToDomainBookCreate(book dto.BookCreate) domain.BookCreate {
+	return domain.BookCreate{
+		BookInfo:      ToDomainBookInfo(book.BookInfo),
+		BookPlacement: ToDomainBookPlacement(book.BookPlacement),
+	}
+}
+
+func ToDtoBookCreate(book domain.BookCreate) dto.BookCreate {
+	return dto.BookCreate{
+		BookInfo:      ToDtoBookInfo(book.BookInfo),
+		BookPlacement: ToDtoBookPlacement(book.BookPlacement),
 	}
 }
 
@@ -240,4 +168,135 @@ func ToDtoUserCreate(user domain.UserCreate) dto.UserCreate {
 		UserInfo: ToDtoUserInfo(user.UserInfo),
 		Password: user.Password,
 	}
+}
+
+func ToDtoUser(user domain.User) dto.User {
+	return dto.User{
+		ID:         user.ID,
+		UserCreate: ToDtoUserCreate(user.UserCreate),
+	}
+}
+
+func ToDomainUser(user dto.User) domain.User {
+	return domain.User{
+		ID:         user.ID,
+		UserCreate: ToDomainUserCreate(user.UserCreate),
+	}
+}
+
+func ToDtoAdminUser(user domain.AdminUser) dto.AdminUser {
+	return dto.AdminUser{
+		ID:              user.ID,
+		AdminUserCreate: ToDtoAdminUserCreate(user.AdminUserCreate),
+	}
+}
+
+func ToDomainAdminUser(user dto.AdminUser) domain.AdminUser {
+	return domain.AdminUser{
+		ID:              user.ID,
+		AdminUserCreate: ToDomainAdminUserCreate(user.AdminUserCreate),
+	}
+}
+
+func ToDomainBookSearch(book dto.BookSearch) domain.BookSearch {
+	return domain.BookSearch{
+		ID:          book.ID,
+		Title:       book.Title,
+		Authors:     book.Authors,
+		Description: book.Description,
+		Category:    book.Category,
+	}
+}
+
+func ToDtoBookSearch(book domain.BookSearch) dto.BookSearch {
+	return dto.BookSearch{
+		ID:          book.ID,
+		Title:       book.Title,
+		Authors:     book.Authors,
+		Description: book.Description,
+		Category:    book.Category,
+	}
+}
+
+func DomainBookSearchFromBookCreate(bookId int, book domain.BookCreate) domain.BookSearch {
+	var bookDesc string
+	if book.Description.Valid {
+		bookDesc = book.Description.String
+	}
+	return domain.BookSearch{
+		ID:          bookId,
+		Title:       book.Title,
+		Authors:     book.Authors,
+		Description: bookDesc,
+		Category:    book.Category,
+	}
+}
+
+func MeiliDocumentFromBookSearch(primaryKey int, bookSearch domain.BookSearch) map[string]interface{} {
+	switch reflect.TypeOf(bookSearch).Kind() {
+	case reflect.Struct:
+		fields := reflect.VisibleFields(reflect.TypeOf(bookSearch))
+		values := reflect.ValueOf(bookSearch)
+
+		doc := make(map[string]interface{})
+		for i, field := range fields {
+			if !values.Field(i).CanInterface() {
+				continue
+			}
+			tag, ok := field.Tag.Lookup("search")
+			if ok {
+				doc[tag] = values.Field(i).Interface()
+			}
+		}
+		return doc
+
+	default:
+		return map[string]interface{}{}
+	}
+}
+
+// doc is expected to be map[string]interface{}
+func BookFromMeiliDocument(doc interface{}) domain.BookSearch {
+	docMap, ok := doc.(map[string]interface{})
+	if !ok {
+		return domain.BookSearch{}
+	}
+
+	var book domain.BookSearch
+	bookValue := reflect.ValueOf(&book).Elem()
+	bookType := bookValue.Type()
+
+	for i := range bookType.NumField() {
+		field := bookType.Field(i)
+		searchTag := field.Tag.Get("search")
+
+		if value, ok := docMap[searchTag]; ok {
+			fieldValue := bookValue.Field(i)
+
+			if fieldValue.CanSet() {
+				if field.Type == reflect.TypeOf([]string{}) {
+					interfaceSlice, ok := value.([]interface{})
+					if ok {
+						strSlice := make([]string, len(interfaceSlice))
+						for j, v := range interfaceSlice {
+							strSlice[j], _ = v.(string)
+						}
+						fieldValue.Set(reflect.ValueOf(strSlice))
+						continue
+					}
+				}
+				fieldValue.Set(reflect.ValueOf(value).Convert(field.Type))
+			}
+		}
+	}
+	return book
+}
+
+func BooksFromMeiliDocuments(docs []interface{}) []domain.BookSearch {
+	books := make([]domain.BookSearch, len(docs))
+	for i, doc := range docs {
+		books[i] = BookFromMeiliDocument(doc)
+	}
+
+	return books
 }
