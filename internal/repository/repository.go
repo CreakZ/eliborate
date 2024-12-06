@@ -2,18 +2,18 @@ package repository
 
 import (
 	"context"
-	domain "yurii-lib/internal/models/domain"
+	domain "eliborate/internal/models/domain"
 )
 
 type BookRepo interface {
-	CreateBook(ctx context.Context, book domain.BookPlacement) (int, error)
+	CreateBook(ctx context.Context, book domain.BookCreate) (int, error)
 
-	CreateCategory(ctx context.Context, category string) error
-
-	GetBooks(ctx context.Context, page, limit int) ([]domain.Book, error)
+	GetBookById(ctx context.Context, id int) (domain.Book, error)
+	GetBookByIsbn(ctx context.Context, id int) (domain.Book, error)
+	GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]domain.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
 	GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error)
-	GetBooksByTextSearch(ctx context.Context, text string) ([]domain.Book, error)
+	GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error)
 
 	UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error
 	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error
@@ -22,15 +22,12 @@ type BookRepo interface {
 }
 
 type PublicRepo interface {
-	GetByLogin(ctx context.Context, userType, login string) (int, string, error)
+	GetUserByLogin(ctx context.Context, login string) (domain.User, error)
+	GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error)
 }
 
 type UserRepo interface {
 	Create(ctx context.Context, user domain.UserCreate) (int, error)
-
-	CheckByLogin(ctx context.Context, login string) (bool, error)
-
-	GetPassword(ctx context.Context, id int) (string, error)
 
 	UpdatePassword(ctx context.Context, id int, password string) error
 
@@ -38,21 +35,15 @@ type UserRepo interface {
 }
 
 type AdminUserRepo interface {
-	// Create(ctx context.Context, user domain.AdminUserCreate) (int, error)
-
-	GetPassword(ctx context.Context, id int) (string, error)
-
 	UpdatePassword(ctx context.Context, id int, password string) error
-
-	// Delete(ctx context.Context, id int) error
-	// DeleteAll(ctx context.Context) error
 }
 
 type CategoryRepo interface {
-	CreateCategory(ctx context.Context, categoryName string) error
+	Create(ctx context.Context, categoryName string) error
 
-	GetCategoryNameIfExists(ctx context.Context, name string) (bool, error) // вспомогательный метод для проверки существования
-	GetAllCategories(ctx context.Context) ([]string, error)
+	GetAll(ctx context.Context) ([]string, error)
 
-	DeleteCategory(ctx context.Context, name string) error
+	Update(ctx context.Context, id int, newName string) error
+
+	Delete(ctx context.Context, name string) error
 }

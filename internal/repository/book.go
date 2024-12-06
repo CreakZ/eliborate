@@ -2,76 +2,59 @@ package repository
 
 import (
 	"context"
+	"eliborate/internal/convertors"
+	"eliborate/internal/errs"
+	domain "eliborate/internal/models/domain"
 	"fmt"
 	"strings"
-	domain "yurii-lib/internal/models/domain"
-	"yurii-lib/pkg/errs"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/jmoiron/sqlx"
+	"github.com/meilisearch/meilisearch-go"
 )
 
 type bookRepo struct {
-	db  *sqlx.DB
-	svc *s3.S3
+	db     *sqlx.DB
+	search meilisearch.IndexManager
 }
 
-func InitBookRepo(db *sqlx.DB, svc *s3.S3) BookRepo {
+func InitBookRepo(db *sqlx.DB, search meilisearch.IndexManager) BookRepo {
 	return bookRepo{
-		db:  db,
-		svc: svc,
+		db:     db,
+		search: search,
 	}
 }
 
-func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (int, error) {
-	// Попытка поместить файл в S3-хранилище
-	/*
-		var imgKey sql.NullString
-
-		if book.Cover.Valid {
-			resp, err := http.Get(book.Cover.String)
-			if err != nil {
-				return 0, err
-			}
-
-			// handle error
-			body, _ := io.ReadAll(resp.Body)
-
-			img := bytes.NewReader(body)
-
-			imgID := uuid.New().String()
-
-			key := fmt.Sprintf("%s.webp", imgID)
-
-			_, err = b.svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
-				Bucket: aws.String(viper.GetString(config.S3ImageBucketName)),
-				Key:    aws.String(key),
-				Body:   img,
-			})
-			if err != nil {
-				return 0, err
-			}
-
-			imgKey.String = key
-		}
-	*/
-
+func (b bookRepo) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
 
-	query := `INSERT INTO books (title, authors, description, category, is_foreign, cover_url, rack, shelf) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+	var categoryId int
+	row := tx.QueryRowContext(ctx, `SELECT id FROM categories WHERE name = $1`, book.Category)
+	if err = row.Scan(&categoryId); err != nil {
+		return 0, err
+	}
 
-	row := tx.QueryRowContext(ctx, query,
-		book.Title, book.Authors, book.Description, book.Category, book.IsForeign, book.CoverURL, book.Rack, book.Shelf)
+	query := `--sql
+	INSERT INTO books (title, authors, description, category_id, cover_urls, rack, shelf) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7) 
+	RETURNING id
+	`
+
+	row = tx.QueryRowContext(ctx, query,
+		book.Title, book.Authors, book.Description, categoryId, book.CoverUrls, book.Rack, book.Shelf)
 
 	var bookID int
 	if err = row.Scan(&bookID); err != nil {
-		if errTxRb := tx.Rollback(); errTxRb != nil {
-			return 0, errs.MergeErrors("create book", []string{err.Error(), errTxRb.Error()})
-		}
+		tx.Rollback()
+		return 0, err
+	}
 
+	bookSearch := convertors.DomainBookSearchFromBookCreate(bookID, book)
+
+	if _, err = b.search.AddDocumentsWithContext(ctx, []domain.BookSearch{bookSearch}); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -82,14 +65,38 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookPlacement) (in
 	return bookID, nil
 }
 
-func (b bookRepo) CreateCategory(ctx context.Context, category string) error {
-	return nil
+func (b bookRepo) GetBookById(ctx context.Context, id int) (domain.Book, error) {
+	query := `SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
+	FROM books as b
+	JOIN categories as c ON b.category_id = c.id
+	WHERE b.id = $1`
+
+	row := b.db.QueryRowContext(ctx, query, id)
+
+	var book domain.Book
+	err := row.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf)
+	if err != nil {
+		return domain.Book{}, err
+	}
+
+	return book, nil
 }
 
-func (b bookRepo) GetBooks(ctx context.Context, page, limit int) ([]domain.Book, error) {
+func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (domain.Book, error) {
+	return domain.Book{}, nil
+}
+
+func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]domain.Book, error) {
 	offset := page * limit
 
-	res, err := b.db.QueryContext(ctx, `SELECT * FROM books LIMIT $1 OFFSET $2`, limit, offset)
+	query := `--sql
+	SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
+	FROM books as b
+	JOIN categories as c ON b.category_id = c.id
+	LIMIT $1
+	OFFSET $2`
+
+	res, err := b.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return []domain.Book{}, err
 	}
@@ -100,11 +107,10 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int) ([]domain.Book,
 	)
 
 	for res.Next() {
-		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category,
-			&book.Authors, &book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf); err != nil {
+		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
+			&book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
 			return []domain.Book{}, err
 		}
-
 		books = append(books, book)
 	}
 
@@ -113,11 +119,9 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int) ([]domain.Book,
 
 func (b bookRepo) GetBooksTotalCount(ctx context.Context) (int, error) {
 	var totalCount int
-
 	if err := b.db.GetContext(ctx, &totalCount, `SELECT COUNT(*) FROM books`); err != nil {
 		return 0, err
 	}
-
 	return totalCount, nil
 }
 
@@ -131,55 +135,31 @@ func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, 
 	var book domain.Book
 	for res.Next() {
 		err = res.Scan(&book.ID, &book.Title, &book.Category, &book.Description, &book.Authors,
-			&book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf)
+			&book.CoverUrls, &book.Rack, &book.Shelf)
 		if err != nil {
-			// scan error
 			return []domain.Book{}, err
 		}
-
 		books = append(books, book)
 	}
-
 	return books, nil
 }
 
-// TODO
-func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.Book, error) {
-	query := `--sql
-	SELECT * FROM books
-	WHERE title % $1 OR title LIKE '%$1%' OR
-	EXISTS (
-		SELECT 1 FROM unnest(authors) AS author
-		WHERE author % $1 OR author LIKE '%$1%'
-	);`
-
-	rows, err := b.db.QueryContext(ctx, query, text)
-	if err != nil {
-		return []domain.Book{}, err
-	}
-
-	var (
-		book  domain.Book
-		books []domain.Book
+func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error) {
+	searchResp, err := b.search.Search(
+		text,
+		&meilisearch.SearchRequest{
+			AttributesToSearchOn: []string{"title", "authors", "description"},
+		},
 	)
-
-	for rows.Next() {
-		err = rows.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
-			&book.IsForeign, &book.CoverURL, &book.Rack, &book.Shelf)
-		if err != nil {
-			return []domain.Book{}, err
-		}
-
-		books = append(books, book)
+	if err != nil {
+		return []domain.BookSearch{}, err
 	}
-
-	return books, nil
+	return convertors.BooksFromMeiliDocuments(searchResp.Hits), nil
 }
 
 func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error {
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
-		// tx begin error
 		return err
 	}
 
@@ -189,12 +169,12 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 		num  = 1
 	)
 
-	queryBase := `UPDATE books SET`
+	queryBase := "UPDATE books SET"
 
 	for key, value := range fields {
 		vars = append(vars, fmt.Sprintf("%s=$%d", key, num))
 		args = append(args, value)
-		num += 1
+		num++
 	}
 
 	values := strings.Join(vars, ", ")
@@ -203,19 +183,12 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 
 	args = append(args, id)
 
-	res, execErr := tx.ExecContext(ctx, query, args...)
+	_, execErr := tx.ExecContext(ctx, query, args...)
 	if execErr != nil {
-		// query error
 		return execErr
 	}
 
-	if affected, _ := res.RowsAffected(); affected != 1 {
-		// not a single row affected error
-		return errs.ErrNoRowsAffected
-	}
-
 	if err = tx.Commit(); err != nil {
-		// tx commit error
 		return err
 	}
 
@@ -228,17 +201,14 @@ func (b bookRepo) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) 
 		return err
 	}
 
-	res, qErr := tx.ExecContext(ctx, `--sql
-	UPDATE library SET rack=$1, shelf=$2 WHERE book_id=$3`, rack, shelf, id)
-	if qErr != nil {
-		return qErr
-	}
-
-	if affected, _ := res.RowsAffected(); affected != 1 {
-		return errs.ErrNoRowsAffected
+	_, err = tx.ExecContext(ctx, `UPDATE books SET rack=$1, shelf=$2 WHERE id=$3`, rack, shelf, id)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	if err = tx.Commit(); err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -254,19 +224,16 @@ func (b bookRepo) DeleteBook(ctx context.Context, id int) error {
 	res, execErr := tx.ExecContext(ctx, `DELETE FROM books WHERE id=$1`, id)
 	if execErr != nil {
 		tx.Rollback()
-
 		return execErr
 	}
 
-	if affected, _ := res.RowsAffected(); affected != 1 {
+	if affected, _ := res.RowsAffected(); affected == 0 {
 		tx.Rollback()
-
 		return errs.ErrNoRowsAffected
 	}
 
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-
 		return err
 	}
 
