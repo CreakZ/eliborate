@@ -37,7 +37,7 @@ func InitBookHandlers(service service.BookService, cache *storage.RedisCache) Bo
 // @Tags books
 // @Accept json
 // @Produce json
-// @Param book body dto.BookPlacement true "Book Placement"
+// @Param book body dto.BookCreate true "Book Create"
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -78,8 +78,8 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 	c.JSON(http.StatusCreated, responses.NewMessageResponse(fmt.Sprintf("book with id %v created successfully", id)))
 }
 
-// @Summary Get book by rack number
-// @Description Retrieve all books located in a specific rack
+// @Summary Get book by id
+// @Description Retrieve book information by its id
 // @Tags books
 // @Param id path int true "Rack Number"
 // @Produce json
@@ -281,6 +281,7 @@ func (b bookHandlers) GetBooksByTextSearch(c *gin.Context) {
 // @Tags books
 // @Accept json
 // @Produce json
+// @Param book body dto.UpdateBookInfo true "Update Book Info"
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -325,6 +326,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 // @Tags books
 // @Accept json
 // @Produce json
+// @Param book body dto.BookPlacement true "Book Placement"
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -367,7 +369,7 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 // @Summary Delete a book by its ID
 // @Description Remove a book from the system using its ID
 // @Tags books
-// @Param id query int true "Book ID"
+// @Param id path int true "Book ID"
 // @Produce json
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse

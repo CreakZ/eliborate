@@ -26,8 +26,7 @@ func InitPublicHandlers(publicService service.PublicService, jwt utils.JWT) Publ
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param login body string true "Login of the admin user"
-// @Param password body string true "Password of the admin user"
+// @Param credentials body dto.AdminUserCreate true "Login of the admin user"
 // @Success 201 {object} map[string]string "Signed JWT"
 // @Failure 400 {object} map[string]string "Bad Request"
 // @Failure 500 {object} map[string]string "Internal Server Error"
@@ -66,8 +65,7 @@ func (p publicHandlers) LoginAdminUser(c *gin.Context) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param login body string true "Login of the user"
-// @Param password body string true "Password of the user"
+// @Param credentials body dto.UserCreate true "Login of the user"
 // @Success 201 {object} map[string]string "Access token"
 // @Failure 400 {object} map[string]string "Bad Request"
 // @Failure 404 {object} map[string]string "Not Found"
