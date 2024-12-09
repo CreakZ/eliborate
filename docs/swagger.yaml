@@ -1,5 +1,12 @@
 basePath: /api/v1
 definitions:
+  dto.AdminUserCreate:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
   dto.Book:
     properties:
       authors:
@@ -16,6 +23,27 @@ definitions:
         type: string
       id:
         type: integer
+      rack:
+        type: integer
+      shelf:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.BookCreate:
+    properties:
+      authors:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      cover_urls:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
       rack:
         type: integer
       shelf:
@@ -42,6 +70,23 @@ definitions:
         type: string
       id:
         type: integer
+      title:
+        type: string
+    type: object
+  dto.UpdateBookInfo:
+    properties:
+      authors:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      cover_urls:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
       title:
         type: string
     type: object
@@ -176,12 +221,12 @@ paths:
       - application/json
       description: Create a new book entry in the system
       parameters:
-      - description: Book Placement
+      - description: Book Create
         in: body
         name: book
         required: true
         schema:
-          $ref: '#/definitions/dto.BookPlacement'
+          $ref: '#/definitions/dto.BookCreate'
       produces:
       - application/json
       responses:
@@ -205,7 +250,7 @@ paths:
       description: Remove a book from the system using its ID
       parameters:
       - description: Book ID
-        in: query
+        in: path
         name: id
         required: true
         type: integer
@@ -232,7 +277,7 @@ paths:
       tags:
       - books
     get:
-      description: Retrieve all books located in a specific rack
+      description: Retrieve book information by its id
       parameters:
       - description: Rack Number
         in: path
@@ -256,7 +301,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
-      summary: Get book by rack number
+      summary: Get book by id
       tags:
       - books
   /books/{id}/info:
@@ -264,6 +309,13 @@ paths:
       consumes:
       - application/json
       description: Update details of an existing book
+      parameters:
+      - description: Update Book Info
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBookInfo'
       produces:
       - application/json
       responses:
@@ -287,6 +339,13 @@ paths:
       consumes:
       - application/json
       description: Update the rack and shelf placement of a book
+      parameters:
+      - description: Book Placement
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BookPlacement'
       produces:
       - application/json
       responses:
@@ -402,15 +461,11 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "503":
           description: handler is unavailable
       summary: Delete book category
@@ -424,15 +479,11 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
       summary: Get all book categories
       tags:
       - categories
@@ -444,15 +495,11 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "503":
           description: handler is unavailable
       summary: Update book category
@@ -468,21 +515,15 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.MessageResponse'
       summary: Create new book category
       tags:
       - categories
@@ -495,16 +536,10 @@ paths:
       parameters:
       - description: Login of the admin user
         in: body
-        name: login
+        name: credentials
         required: true
         schema:
-          type: string
-      - description: Password of the admin user
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/dto.AdminUserCreate'
       produces:
       - application/json
       responses:
@@ -538,16 +573,10 @@ paths:
       parameters:
       - description: Login of the user
         in: body
-        name: login
+        name: credentials
         required: true
         schema:
-          type: string
-      - description: Password of the user
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
+          $ref: '#/definitions/dto.UserCreate'
       produces:
       - application/json
       responses:
