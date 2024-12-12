@@ -36,5 +36,5 @@ func InitBooksRouter(
 	rg.PATCH("/:id/info", middleware.Authorize(), bookHandlers.UpdateBookInfo)
 	rg.PATCH("/:id/placement", middleware.Authorize(), bookHandlers.UpdateBookPlacement)
 
-	rg.DELETE("", middleware.Authorize(), bookHandlers.DeleteBook)
+	rg.DELETE("/:id", middleware.Authorize(), bookHandlers.DeleteBook)
 }
