@@ -31,7 +31,7 @@ func (p publicRepo) GetUserByLogin(ctx context.Context, login string) (domain.Us
 func (p publicRepo) GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error) {
 	var adminUser domain.AdminUser
 
-	row := p.db.QueryRowContext(ctx, `SELECT * FROM admin_users WHERE login = $1`, login)
+	row := p.db.QueryRowContext(ctx, `SELECT * FROM admins WHERE login = $1`, login)
 	if err := row.Scan(&adminUser.ID, &adminUser.Login, &adminUser.Password); err != nil {
 		return domain.AdminUser{}, err
 	}
