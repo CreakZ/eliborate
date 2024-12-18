@@ -87,4 +87,4 @@ CREATE TABLE IF NOT EXISTS admins (
 
 INSERT INTO admins (login, password)
 VALUES 
-	('yurii_rusakov62', 'Rusakov_62')
+	('yurii_rusakov62', '$2b$12$DtCXbAIiPX4vCQn/QRR5o.2oowaRYEBJXBexHVpgl9IprDnkkpL26')
