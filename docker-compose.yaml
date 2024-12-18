@@ -27,6 +27,7 @@ services:
       - ./internal/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      start_period: 20s
       interval: 10s
       timeout: 5s
       retries: 5
