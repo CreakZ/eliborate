@@ -38,6 +38,7 @@ func InitBookHandlers(service service.BookService, cache *storage.RedisCache) Bo
 // @Accept json
 // @Produce json
 // @Param book body dto.BookCreate true "Book Create"
+// @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -282,6 +283,7 @@ func (b bookHandlers) GetBooksByTextSearch(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param book body dto.UpdateBookInfo true "Update Book Info"
+// @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -327,6 +329,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param book body dto.BookPlacement true "Book Placement"
+// @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -371,6 +374,7 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 // @Tags books
 // @Param id path int true "Book ID"
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 404 {object} responses.MessageResponse

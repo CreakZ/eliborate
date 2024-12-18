@@ -65,6 +65,7 @@ func (u userHandlers) Create(c *gin.Context) {
 // @Produce json
 // @Param id body int true "User ID"
 // @Param password body string true "New password"
+// @Security BearerAuth
 // @Success 200
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 401 {object} responses.MessageResponse
@@ -103,6 +104,7 @@ func (u userHandlers) UpdatePassword(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id body int true "User ID"
+// @Security BearerAuth
 // @Success 200
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 401 {object} responses.MessageResponse

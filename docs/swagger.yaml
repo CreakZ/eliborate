@@ -242,6 +242,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Create a new book
       tags:
       - books
@@ -273,6 +275,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a book by its ID
       tags:
       - books
@@ -331,6 +335,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Update book information
       tags:
       - books
@@ -361,6 +367,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Update book placement
       tags:
       - books
@@ -468,6 +476,8 @@ paths:
             $ref: '#/definitions/responses.MessageResponse'
         "503":
           description: handler is unavailable
+      security:
+      - BearerAuth: []
       summary: Delete book category
       tags:
       - categories
@@ -484,6 +494,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Get all book categories
       tags:
       - categories
@@ -502,6 +514,8 @@ paths:
             $ref: '#/definitions/responses.MessageResponse'
         "503":
           description: handler is unavailable
+      security:
+      - BearerAuth: []
       summary: Update book category
       tags:
       - categories
@@ -524,6 +538,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Create new book category
       tags:
       - categories
@@ -626,6 +642,8 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a user
       tags:
       - user
@@ -663,6 +681,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
       summary: Update user password
       tags:
       - user
@@ -703,4 +723,9 @@ paths:
       summary: Create a new user
       tags:
       - user
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

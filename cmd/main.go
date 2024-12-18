@@ -5,6 +5,10 @@
 // @contact.name Maxim Rusakov
 // @contact.email shejustwannagethigh@yandex.ru
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 // @BasePath /api/v1
 
 package main

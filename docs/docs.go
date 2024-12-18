@@ -142,6 +142,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new book entry in the system",
                 "consumes": [
                     "application/json"
@@ -362,6 +367,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Remove a book from the system using its ID",
                 "produces": [
                     "application/json"
@@ -409,6 +419,11 @@ const docTemplate = `{
         },
         "/books/{id}/info": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update details of an existing book",
                 "consumes": [
                     "application/json"
@@ -455,6 +470,11 @@ const docTemplate = `{
         },
         "/books/{id}/placement": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update the rack and shelf placement of a book",
                 "consumes": [
                     "application/json"
@@ -501,6 +521,11 @@ const docTemplate = `{
         },
         "/categories": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all book categories",
                 "produces": [
                     "application/json"
@@ -525,6 +550,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create new book category",
                 "consumes": [
                     "application/json"
@@ -558,6 +588,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete book category (not done yet)",
                 "produces": [
                     "application/json"
@@ -585,6 +620,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update book category (not done yet)",
                 "produces": [
                     "application/json"
@@ -780,6 +820,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes the user with the provided ID",
                 "consumes": [
                     "application/json"
@@ -821,6 +866,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates the password for the user with the given ID",
                 "consumes": [
                     "application/json"
@@ -1072,6 +1122,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

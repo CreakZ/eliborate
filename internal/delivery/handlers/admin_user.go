@@ -28,6 +28,7 @@ func InitAdminUserHandlers(service service.AdminUserService) AdminUserHandlers {
 // @Produce json
 // @Param id body int true "Admin user ID"
 // @Param password body string true "New admin user password"
+// @Security BearerAuth
 // @Success 200
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 401 {object} responses.MessageResponse

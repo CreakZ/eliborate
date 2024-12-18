@@ -24,6 +24,7 @@ func NewCategoryHandlers(service service.CategoryService) CategoryHandlers {
 // @Tags categories
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Success 201 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -52,6 +53,7 @@ func (h categoryHandlers) Create(c *gin.Context) {
 // @Description Get all book categories
 // @Tags categories
 // @Produce json
+// @Security BearerAuth
 // @Success 201 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
 // @Router /categories [get]
@@ -75,6 +77,7 @@ func (h categoryHandlers) GetAll(c *gin.Context) {
 // @Description Update book category (not done yet)
 // @Tags categories
 // @Produce json
+// @Security BearerAuth
 // @Success 201 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
 // @Failure 503                            "handler is unavailable"
@@ -87,6 +90,7 @@ func (h categoryHandlers) Update(c *gin.Context) {
 // @Description Delete book category (not done yet)
 // @Tags categories
 // @Produce json
+// @Security BearerAuth
 // @Success 201 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
 // @Failure 503                            "handler is unavailable"
