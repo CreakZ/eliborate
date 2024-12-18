@@ -3,22 +3,19 @@ package middleware
 import (
 	"eliborate/internal/constants"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (m Middleware) Authorize() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
+		token := c.GetHeader("Authorization")
 
-		if !strings.Contains(auth, "Bearer ") {
+		if token == "" {
 			m.logger.InfoLogger.Info().Msg("no jwt provided")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "no jwt provided"})
 			return
 		}
-
-		token := strings.Split(auth, " ")[1]
 
 		claim, valid, err := m.jwtUtil.Authorize(token)
 		if err != nil {
