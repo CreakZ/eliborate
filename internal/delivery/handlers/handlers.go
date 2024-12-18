@@ -8,7 +8,6 @@ type BookHandlers interface {
 	CreateBook(c *gin.Context)
 
 	GetBookById(c *gin.Context)
-	GetBookByIsbn(c *gin.Context)
 	GetBooks(c *gin.Context)
 	GetBooksByRack(c *gin.Context)
 	GetBooksByTextSearch(c *gin.Context)

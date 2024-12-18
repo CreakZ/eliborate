@@ -28,7 +28,6 @@ func InitBooksRouter(
 	rg.POST("", middleware.Authorize(), bookHandlers.CreateBook)
 
 	rg.GET("/:id", bookHandlers.GetBookById)
-	rg.GET("/isbn/:isbn", bookHandlers.GetBookByIsbn)
 	rg.GET("", bookHandlers.GetBooks)
 	rg.GET("/racks/:rack", bookHandlers.GetBooksByRack)
 	rg.GET("/search", bookHandlers.GetBooksByTextSearch)

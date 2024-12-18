@@ -7,7 +7,6 @@ import (
 	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
 	"eliborate/internal/validators"
-	"eliborate/pkg/bootch"
 	"eliborate/pkg/storage"
 	"encoding/json"
 	"errors"
@@ -108,33 +107,6 @@ func (b bookHandlers) GetBookById(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, book)
-}
-
-// @Summary Get a book by its ISBN
-// @Description Retrieve a book's data from online libraries (Читай Город, Livelib) and book APIs (Google Book API) using its ISBN number
-// @Tags books
-// @Param isbn path string true "ISBN"
-// @Produce json
-// @Success 200 {object} dto.Book
-// @Failure 400 {object} responses.MessageResponse
-// @Failure 204
-// @Failure 500 {object} responses.MessageResponse
-// @Router /books/isbn/{isbn} [get]
-func (b bookHandlers) GetBookByIsbn(c *gin.Context) {
-	isbn := c.Param("isbn")
-
-	books, err := bootch.GetBookByISBN(isbn)
-	if err != nil {
-		switch err {
-		case errs.ErrBooksNotFound:
-			c.AbortWithStatus(http.StatusNoContent)
-		default:
-			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, books)
 }
 
 // @Summary Get a paginated list of books
