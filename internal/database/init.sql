@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS books (
 	FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
-CREATE TABLE IF NOT EXISTS clients (
+CREATE TABLE IF NOT EXISTS users (
     id       SERIAL  PRIMARY KEY,
     login    VARCHAR UNIQUE,
     password VARCHAR,
