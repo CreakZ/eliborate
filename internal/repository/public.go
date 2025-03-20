@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"eliborate/internal/models/domain"
+	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,23 +17,23 @@ func InitPublicRepo(db *sqlx.DB) PublicRepo {
 	}
 }
 
-func (p publicRepo) GetUserByLogin(ctx context.Context, login string) (domain.User, error) {
-	var user domain.User
+func (p publicRepo) GetUserByLogin(ctx context.Context, login string) (entity.User, error) {
+	var user entity.User
 
 	row := p.db.QueryRowContext(ctx, `SELECT * FROM users WHERE login = $1`, login)
 	if err := row.Scan(&user.ID, &user.Name, &user.Login, &user.Password); err != nil {
-		return domain.User{}, err
+		return entity.User{}, err
 	}
 
 	return user, nil
 }
 
-func (p publicRepo) GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error) {
-	var adminUser domain.AdminUser
+func (p publicRepo) GetAdminUserByLogin(ctx context.Context, login string) (entity.AdminUser, error) {
+	var adminUser entity.AdminUser
 
 	row := p.db.QueryRowContext(ctx, `SELECT * FROM admins WHERE login = $1`, login)
 	if err := row.Scan(&adminUser.ID, &adminUser.Login, &adminUser.Password); err != nil {
-		return domain.AdminUser{}, err
+		return entity.AdminUser{}, err
 	}
 
 	return adminUser, nil

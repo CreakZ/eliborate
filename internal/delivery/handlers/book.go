@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"eliborate/internal/constants"
+	"eliborate/internal/convertors"
 	"eliborate/internal/delivery/responses"
 	"eliborate/internal/errs"
 	"eliborate/internal/models/dto"
@@ -56,7 +57,9 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 		return
 	}
 
-	id, err := b.service.CreateBook(c.Request.Context(), book)
+	bookDomain := convertors.DtoBookCreateToDomain(book)
+
+	id, err := b.service.CreateBook(c.Request.Context(), bookDomain)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
 		return
@@ -185,7 +188,12 @@ func (b bookHandlers) GetBooks(c *gin.Context) {
 
 	totalPages := count/limit + 1
 
-	c.JSON(http.StatusOK, responses.NewBookPaginationResponse(page, totalPages, limit, books))
+	booksDto := make([]dto.Book, 0, len(books))
+	for _, book := range books {
+		booksDto = append(booksDto, convertors.DomainBookToDto(book))
+	}
+
+	c.JSON(http.StatusOK, responses.NewBookPaginationResponse(page, totalPages, limit, booksDto))
 }
 
 // @Summary Get books by rack number
@@ -246,7 +254,12 @@ func (b bookHandlers) GetBooksByTextSearch(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, responses.NewBookSearchResponse(books))
+	booksDto := make([]dto.BookSearch, 0, len(books))
+	for _, book := range books {
+		booksDto = append(booksDto, convertors.DomainBookSearchToDto(book))
+	}
+
+	c.JSON(http.StatusOK, responses.NewBookSearchResponse(booksDto))
 }
 
 // @Summary Update book information
@@ -268,7 +281,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 		return
 	}
 
-	var bookUpdate dto.UpdateBookInfo
+	var updateBook dto.UpdateBookInfo
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -276,18 +289,20 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 		return
 	}
 
-	if err = json.Unmarshal(body, &bookUpdate); err != nil {
+	if err = json.Unmarshal(body, &updateBook); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
 		return
 	}
 
-	if bookUpdate.Authors == nil && bookUpdate.Category == nil && bookUpdate.Description == nil &&
-		len(bookUpdate.CoverUrls) == 0 && bookUpdate.Title == nil {
+	if updateBook.Authors == nil && updateBook.Category == nil && updateBook.Description == nil &&
+		len(updateBook.CoverUrls) == 0 && updateBook.Title == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no parameters provided"))
 		return
 	}
 
-	if err = b.service.UpdateBookInfo(c.Request.Context(), id, bookUpdate); err != nil {
+	updateBookDomain := convertors.DtoUpdateBookInfoToDomain(updateBook)
+
+	if err = b.service.UpdateBookInfo(c.Request.Context(), id, updateBookDomain); err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
 		return
 	}

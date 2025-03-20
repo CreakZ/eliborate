@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"eliborate/internal/convertors"
-	"eliborate/internal/models/dto"
+	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
 	"eliborate/pkg/logging"
 	"fmt"
@@ -23,41 +23,41 @@ func InitBookService(repo repository.BookRepo, log *logging.Log) BookService {
 	}
 }
 
-func (b bookService) CreateBook(ctx context.Context, book dto.BookCreate) (int, error) {
-	bookConv := convertors.ToDomainBookCreate(book)
+func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
+	bookEntity := convertors.DomainBookCreateToEntity(book)
 
-	userID, err := b.repo.CreateBook(ctx, bookConv)
+	bookID, err := b.repo.CreateBook(ctx, bookEntity)
 	if err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("create book %v", err.Error()))
 		return 0, err
 	}
 
-	return userID, nil
+	return bookID, nil
 }
 
-func (b bookService) GetBookById(ctx context.Context, id int) (dto.Book, error) {
+func (b bookService) GetBookById(ctx context.Context, id int) (domain.Book, error) {
 	book, err := b.repo.GetBookById(ctx, id)
 	if err != nil {
-		return dto.Book{}, err
+		return domain.Book{}, err
 	}
-	return convertors.ToDtoBook(book), nil
+	return convertors.EntityBookToDomain(book), nil
 }
 
 // TODO
-func (b bookService) GetBookByIsbn(ctx context.Context, isbn string) (dto.Book, error) {
-	return dto.Book{}, nil
+func (b bookService) GetBookByIsbn(ctx context.Context, isbn string) (domain.Book, error) {
+	return domain.Book{}, nil
 }
 
-func (b bookService) GetBooks(ctx context.Context, page, limit int, filter ...interface{}) ([]dto.Book, error) {
+func (b bookService) GetBooks(ctx context.Context, page, limit int, filter ...any) ([]domain.Book, error) {
 	shiftedPage := page - 1
 	booksRaw, err := b.repo.GetBooks(ctx, shiftedPage, limit)
 	if err != nil {
-		return []dto.Book{}, err
+		return []domain.Book{}, err
 	}
 
-	books := make([]dto.Book, 0, len(booksRaw))
+	books := make([]domain.Book, 0, len(booksRaw))
 	for _, book := range booksRaw {
-		books = append(books, convertors.ToDtoBook(book))
+		books = append(books, convertors.EntityBookToDomain(book))
 	}
 	return books, nil
 }
@@ -70,36 +70,36 @@ func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, error) {
+func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error) {
 	booksRaw, err := b.repo.GetBooksByRack(ctx, rack)
 	if err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by rack %v", err.Error()))
-		return []dto.Book{}, err
+		return []domain.Book{}, err
 	}
 
-	books := make([]dto.Book, len(booksRaw))
+	books := make([]domain.Book, len(booksRaw))
 
 	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
+		books[i] = convertors.EntityBookToDomain(booksRaw[i])
 	}
 	return books, err
 }
 
-func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]dto.BookSearch, error) {
+func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error) {
 	booksDomain, err := b.repo.GetBooksByTextSearch(ctx, text)
 	if err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by fulltext search %s", err.Error()))
-		return []dto.BookSearch{}, err
+		return []domain.BookSearch{}, err
 	}
 
-	books := make([]dto.BookSearch, len(booksDomain))
+	books := make([]domain.BookSearch, len(booksDomain))
 	for i := range booksDomain {
-		books[i] = convertors.ToDtoBookSearch(booksDomain[i])
+		books[i] = convertors.EntityBookSearchToDomain(booksDomain[i])
 	}
 	return books, nil
 }
 
-func (b bookService) UpdateBookInfo(ctx context.Context, id int, book dto.UpdateBookInfo) error {
+func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.UpdateBookInfo) error {
 	bookConv := convertors.UpdateBookInfoToMap(book)
 
 	if err := b.repo.UpdateBookInfo(ctx, id, bookConv); err != nil {

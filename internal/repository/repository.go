@@ -2,18 +2,18 @@ package repository
 
 import (
 	"context"
-	domain "eliborate/internal/models/domain"
+	"eliborate/internal/models/entity"
 )
 
 type BookRepo interface {
-	CreateBook(ctx context.Context, book domain.BookCreate) (int, error)
+	CreateBook(ctx context.Context, book entity.BookCreate) (int, error)
 
-	GetBookById(ctx context.Context, id int) (domain.Book, error)
-	GetBookByIsbn(ctx context.Context, id int) (domain.Book, error)
-	GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]domain.Book, error)
+	GetBookById(ctx context.Context, id int) (entity.Book, error)
+	GetBookByIsbn(ctx context.Context, id int) (entity.Book, error)
+	GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
-	GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error)
-	GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error)
+	GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, error)
+	GetBooksByTextSearch(ctx context.Context, text string) ([]entity.BookSearch, error)
 
 	UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error
 	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error
@@ -22,12 +22,12 @@ type BookRepo interface {
 }
 
 type PublicRepo interface {
-	GetUserByLogin(ctx context.Context, login string) (domain.User, error)
-	GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error)
+	GetUserByLogin(ctx context.Context, login string) (entity.User, error)
+	GetAdminUserByLogin(ctx context.Context, login string) (entity.AdminUser, error)
 }
 
 type UserRepo interface {
-	Create(ctx context.Context, user domain.UserCreate) (int, error)
+	Create(ctx context.Context, user entity.UserCreate) (int, error)
 
 	UpdatePassword(ctx context.Context, id int, password string) error
 

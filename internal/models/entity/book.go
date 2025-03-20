@@ -1,11 +1,17 @@
-package domain
+package entity
+
+import (
+	"database/sql"
+
+	"github.com/lib/pq"
+)
 
 type BookInfo struct {
 	Title       string
-	Authors     []string
-	Description *string
+	Authors     pq.StringArray
+	Description sql.NullString
 	Category    string
-	CoverUrls   []string
+	CoverUrls   pq.StringArray
 }
 
 type BookPlacement struct {
@@ -24,11 +30,11 @@ type Book struct {
 }
 
 type UpdateBookInfo struct {
-	Title       *string
-	Authors     []string
-	Description *string
-	Category    *string
-	CoverUrls   []string
+	Title       sql.NullString
+	Authors     pq.StringArray
+	Description sql.NullString
+	Category    sql.NullString
+	CoverUrls   pq.StringArray
 }
 
 type BookSearch struct {

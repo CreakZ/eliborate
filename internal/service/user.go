@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"eliborate/internal/convertors"
-	"eliborate/internal/models/dto"
+	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
 	"eliborate/internal/validators"
 	"fmt"
@@ -25,21 +25,21 @@ func InitUserService(repo repository.UserRepo, logger *logging.Log) UserService 
 	}
 }
 
-func (u userService) Create(ctx context.Context, user dto.UserCreate) (int, error) {
-	userConv := convertors.ToDomainUserCreate(user)
+func (u userService) Create(ctx context.Context, user domain.UserCreate) (int, error) {
+	userEntity := convertors.DomainUserCreateToEntity(user)
 
 	if validErr := validators.IsPasswordValid(user.Password); validErr != nil {
 		return 0, validErr
 	}
 
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userConv.Password), bcrypt.DefaultCost)
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userEntity.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, err
 	}
 
-	userConv.Password = string(hashedPass)
+	userEntity.Password = string(hashedPass)
 
-	id, err := u.repo.Create(ctx, userConv)
+	id, err := u.repo.Create(ctx, userEntity)
 	if err != nil {
 		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("user create error '%s'", err.Error()))
 		return 0, err

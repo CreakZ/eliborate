@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"eliborate/internal/convertors"
 	"eliborate/internal/delivery/responses"
 	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
@@ -35,21 +36,28 @@ func InitUserHandlers(service service.UserService) UserHandlers {
 // @Failure 500 {object} responses.MessageResponse
 // @Router /users [post]
 func (u userHandlers) Create(c *gin.Context) {
-	var user dto.UserCreate
+	var userCreate dto.UserCreate
 
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&userCreate); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
 		return
 	}
 
-	id, err := u.service.Create(c.Request.Context(), user)
+	userCreateDomain := convertors.DtoUserCreateToDomain(userCreate)
+
+	id, err := u.service.Create(c.Request.Context(), userCreateDomain)
 	if err != nil {
 		pqErr, ok := err.(*pq.Error)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
 		}
 		if pqErr.Code == "23505" {
-			c.AbortWithStatusJSON(http.StatusConflict, responses.NewMessageResponse(fmt.Sprintf("user with '%s' login already exists", user.Login)))
+			c.AbortWithStatusJSON(
+				http.StatusConflict,
+				responses.NewMessageResponse(
+					fmt.Sprintf("user with '%s' login already exists", userCreateDomain.Login),
+				),
+			)
 		}
 		return
 	}

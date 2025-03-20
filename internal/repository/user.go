@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	domain "eliborate/internal/models/domain"
+	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,7 +17,7 @@ func InitUserRepo(db *sqlx.DB) UserRepo {
 	}
 }
 
-func (u userRepo) Create(ctx context.Context, user domain.UserCreate) (int, error) {
+func (u userRepo) Create(ctx context.Context, user entity.UserCreate) (int, error) {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err

@@ -4,7 +4,7 @@ import (
 	"context"
 	"eliborate/internal/convertors"
 	"eliborate/internal/errs"
-	domain "eliborate/internal/models/domain"
+	"eliborate/internal/models/entity"
 	"fmt"
 	"strings"
 
@@ -24,7 +24,7 @@ func InitBookRepo(db *sqlx.DB, search meilisearch.IndexManager) BookRepo {
 	}
 }
 
-func (b bookRepo) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
+func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, error) {
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -37,8 +37,8 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookCreate) (int, 
 	}
 
 	query := `--sql
-	INSERT INTO books (title, authors, description, category_id, cover_urls, rack, shelf) 
-	VALUES ($1, $2, $3, $4, $5, $6, $7) 
+	INSERT INTO books (title, authors, description, category_id, cover_urls, rack, shelf)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	RETURNING id
 	`
 
@@ -51,9 +51,9 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookCreate) (int, 
 		return 0, err
 	}
 
-	bookSearch := convertors.DomainBookSearchFromBookCreate(bookID, book)
+	bookSearch := convertors.EntityBookSearchFromEntityBookCreate(bookID, book)
 
-	if _, err = b.search.AddDocumentsWithContext(ctx, []domain.BookSearch{bookSearch}); err != nil {
+	if _, err = b.search.AddDocumentsWithContext(ctx, []entity.BookSearch{bookSearch}); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -65,7 +65,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book domain.BookCreate) (int, 
 	return bookID, nil
 }
 
-func (b bookRepo) GetBookById(ctx context.Context, id int) (domain.Book, error) {
+func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) {
 	query := `SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
 	FROM books as b
 	JOIN categories as c ON b.category_id = c.id
@@ -73,20 +73,20 @@ func (b bookRepo) GetBookById(ctx context.Context, id int) (domain.Book, error) 
 
 	row := b.db.QueryRowContext(ctx, query, id)
 
-	var book domain.Book
+	var book entity.Book
 	err := row.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf)
 	if err != nil {
-		return domain.Book{}, err
+		return entity.Book{}, err
 	}
 
 	return book, nil
 }
 
-func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (domain.Book, error) {
-	return domain.Book{}, nil
+func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (entity.Book, error) {
+	return entity.Book{}, nil
 }
 
-func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]domain.Book, error) {
+func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error) {
 	offset := page * limit
 
 	query := `--sql
@@ -98,18 +98,18 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...inte
 
 	res, err := b.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
-		return []domain.Book{}, err
+		return []entity.Book{}, err
 	}
 
 	var (
-		book  domain.Book
-		books []domain.Book
+		book  entity.Book
+		books []entity.Book
 	)
 
 	for res.Next() {
 		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
 			&book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
-			return []domain.Book{}, err
+			return []entity.Book{}, err
 		}
 		books = append(books, book)
 	}
@@ -125,26 +125,26 @@ func (b bookRepo) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return totalCount, nil
 }
 
-func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error) {
+func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, error) {
 	res, err := b.db.QueryContext(ctx, `SELECT * FROM books WHERE rack=$1`, rack)
 	if err != nil {
-		return []domain.Book{}, err
+		return []entity.Book{}, err
 	}
 
-	var books []domain.Book
-	var book domain.Book
+	var books []entity.Book
+	var book entity.Book
 	for res.Next() {
 		err = res.Scan(&book.ID, &book.Title, &book.Category, &book.Description, &book.Authors,
 			&book.CoverUrls, &book.Rack, &book.Shelf)
 		if err != nil {
-			return []domain.Book{}, err
+			return []entity.Book{}, err
 		}
 		books = append(books, book)
 	}
 	return books, nil
 }
 
-func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error) {
+func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]entity.BookSearch, error) {
 	searchResp, err := b.search.Search(
 		text,
 		&meilisearch.SearchRequest{
@@ -152,7 +152,7 @@ func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]doma
 		},
 	)
 	if err != nil {
-		return []domain.BookSearch{}, err
+		return []entity.BookSearch{}, err
 	}
 	return convertors.BooksFromMeiliDocuments(searchResp.Hits), nil
 }
