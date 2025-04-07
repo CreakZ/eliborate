@@ -29,10 +29,12 @@ func (u userRepo) Create(ctx context.Context, user entity.UserCreate) (int, erro
 
 	var id int
 	if err = row.Scan(&id); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err = tx.Commit(); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -45,14 +47,13 @@ func (u userRepo) UpdatePassword(ctx context.Context, id int, password string) e
 		return err
 	}
 
-	if _, err := tx.ExecContext(ctx, `UPDATE clients SET password=$1 WHERE id=$2`, password, id); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET password=$1 WHERE id=$2`, password, id); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-
 		return err
 	}
 

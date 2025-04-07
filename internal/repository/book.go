@@ -5,9 +5,8 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/errs"
 	"eliborate/internal/models/entity"
-	"fmt"
-	"strings"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/meilisearch/meilisearch-go"
 )
@@ -36,14 +35,17 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 		return 0, err
 	}
 
-	query := `--sql
-	INSERT INTO books (title, authors, description, category_id, cover_urls, rack, shelf)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	RETURNING id
-	`
+	query, args, err := QueryBuilder.
+		Insert("books").
+		Columns("title", "authors", "description", "category_id", "cover_urls", "rack", "shelf").
+		Values(book.Title, book.Authors, book.Description, categoryId, book.CoverUrls, book.Rack, book.Shelf).
+		Suffix("RETURNING \"id\"").
+		ToSql()
+	if err != nil {
+		return 0, err
+	}
 
-	row = tx.QueryRowContext(ctx, query,
-		book.Title, book.Authors, book.Description, categoryId, book.CoverUrls, book.Rack, book.Shelf)
+	row = tx.QueryRowContext(ctx, query, args...)
 
 	var bookID int
 	if err = row.Scan(&bookID); err != nil {
@@ -66,15 +68,27 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 }
 
 func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) {
-	query := `SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
-	FROM books as b
-	JOIN categories as c ON b.category_id = c.id
-	WHERE b.id = $1`
+	/*
+		query := `SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
+		FROM books as b
+		JOIN categories as c ON b.category_id = c.id
+		WHERE b.id = $1`
+	*/
 
-	row := b.db.QueryRowContext(ctx, query, id)
+	query, args, err := QueryBuilder.
+		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
+		From("books b").
+		Join("categories c ON b.category_id = c.id").
+		Where(squirrel.Eq{"b.id": id}).
+		ToSql()
+	if err != nil {
+		return entity.Book{}, err
+	}
+
+	row := b.db.QueryRowContext(ctx, query, args...)
 
 	var book entity.Book
-	err := row.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf)
+	err = row.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf)
 	if err != nil {
 		return entity.Book{}, err
 	}
@@ -82,6 +96,7 @@ func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) 
 	return book, nil
 }
 
+// Delete this method later
 func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (entity.Book, error) {
 	return entity.Book{}, nil
 }
@@ -89,14 +104,26 @@ func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (entity.Book, error
 func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error) {
 	offset := page * limit
 
-	query := `--sql
-	SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
-	FROM books as b
-	JOIN categories as c ON b.category_id = c.id
-	LIMIT $1
-	OFFSET $2`
+	/*
+		query := `--sql
+		SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
+		FROM books as b
+		JOIN categories as c ON b.category_id = c.id
+		LIMIT $1
+		OFFSET $2`
+	*/
 
-	res, err := b.db.QueryContext(ctx, query, limit, offset)
+	query, args, err := QueryBuilder.
+		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
+		From("books b").Join("categories c ON b.category_id = c.id").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		ToSql()
+	if err != nil {
+		return []entity.Book{}, err
+	}
+
+	res, err := b.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return []entity.Book{}, err
 	}
@@ -158,30 +185,45 @@ func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]enti
 }
 
 func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error {
+	builder := QueryBuilder.Update("books")
+
+	for field, value := range fields {
+		builder = builder.Set(field, value)
+	}
+
+	query, args, err := builder.
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	var (
-		vars []string
-		args []interface{}
-		num  = 1
-	)
+	/*
+		var (
+			vars []string
+			args []interface{}
+			num  = 1
+		)
 
-	queryBase := "UPDATE books SET"
+		queryBase := "UPDATE books SET"
 
-	for key, value := range fields {
-		vars = append(vars, fmt.Sprintf("%s=$%d", key, num))
-		args = append(args, value)
-		num++
-	}
+		for key, value := range fields {
+			vars = append(vars, fmt.Sprintf("%s=$%d", key, num))
+			args = append(args, value)
+			num++
+		}
 
-	values := strings.Join(vars, ", ")
+		values := strings.Join(vars, ", ")
 
-	query := strings.Join([]string{queryBase, values, fmt.Sprintf("WHERE id=$%d", num)}, " ")
+		query := strings.Join([]string{queryBase, values, fmt.Sprintf("WHERE id=$%d", num)}, " ")
 
-	args = append(args, id)
+		args = append(args, id)
+	*/
 
 	_, execErr := tx.ExecContext(ctx, query, args...)
 	if execErr != nil {
@@ -196,12 +238,22 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 }
 
 func (b bookRepo) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
+	query, args, err := QueryBuilder.
+		Update("books").
+		Set("rack", rack).
+		Set("shelf", shelf).
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	tx, err := b.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `UPDATE books SET rack=$1, shelf=$2 WHERE id=$3`, rack, shelf, id)
+	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		tx.Rollback()
 		return err
