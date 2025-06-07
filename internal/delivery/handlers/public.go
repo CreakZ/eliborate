@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
 	utils "eliborate/pkg/utils"
 	"net/http"
@@ -32,13 +33,7 @@ func InitPublicHandlers(publicService service.PublicService, jwt utils.JWT) Publ
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /public/admin [post]
 func (p publicHandlers) LoginAdminUser(c *gin.Context) {
-	userData := struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}{
-		Login:    "",
-		Password: "",
-	}
+	userData := dto.Credentials{}
 
 	if err := c.ShouldBindJSON(&userData); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -71,13 +66,7 @@ func (p publicHandlers) LoginAdminUser(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Not Found"
 // @Router /public/user [post]
 func (p publicHandlers) LoginUser(c *gin.Context) {
-	userData := struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}{
-		Login:    "",
-		Password: "",
-	}
+	userData := dto.Credentials{}
 
 	if err := c.ShouldBindJSON(&userData); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})

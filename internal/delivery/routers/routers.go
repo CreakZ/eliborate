@@ -22,13 +22,11 @@ func InitRouting(
 	middleware middleware.Middleware,
 	search meilisearch.IndexManager,
 ) {
-	basePath := engine.Group("/api/v1")
-
-	booksRG := basePath.Group("/books")
-	publicRG := basePath.Group("/public")
-	userRG := basePath.Group("/users")
-	adminUserRG := basePath.Group("/admins")
-	catRG := basePath.Group("/categories")
+	booksRG := engine.Group("/books")
+	publicRG := engine.Group("/public")
+	userRG := engine.Group("/users")
+	adminUserRG := engine.Group("/admins")
+	catRG := engine.Group("/categories")
 
 	InitBooksRouter(booksRG, db, cache, logger, middleware, search)
 	InitPublicRouter(publicRG, db, logger, jwt)

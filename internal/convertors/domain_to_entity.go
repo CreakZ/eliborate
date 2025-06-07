@@ -8,6 +8,13 @@ import (
 	"github.com/lib/pq"
 )
 
+func DomainCredentialsToEntity(credentials domain.Credentials) entity.Credentials {
+	return entity.Credentials{
+		Login:    credentials.Login,
+		Password: credentials.Password,
+	}
+}
+
 func DomainBookInfoToEntity(book domain.BookInfo) entity.BookInfo {
 	desc := sql.NullString{}
 	if book.Description != nil {
@@ -45,22 +52,10 @@ func DomainBookToEntity(book domain.Book) entity.Book {
 	}
 }
 
-func DomainAdminUserInfoToEntity(user domain.AdminUserInfo) entity.AdminUserInfo {
-	return entity.AdminUserInfo{
-		Login: user.Login,
-	}
-}
-
 func DomainUserInfoToEntity(user domain.UserInfo) entity.UserInfo {
 	return entity.UserInfo{
 		Login: user.Login,
 		Name:  user.Name,
-	}
-}
-
-func DomainAdminUserCreateToEntity(user domain.AdminUserCreate) entity.AdminUserCreate {
-	return entity.AdminUserCreate{
-		AdminUserInfo: DomainAdminUserInfoToEntity(user.AdminUserInfo),
 	}
 }
 
@@ -80,8 +75,8 @@ func ToEntityUser(user domain.User) entity.User {
 
 func DomainAdminUser(user domain.AdminUser) entity.AdminUser {
 	return entity.AdminUser{
-		ID:              user.ID,
-		AdminUserCreate: DomainAdminUserCreateToEntity(user.AdminUserCreate),
+		ID:          user.ID,
+		Credentials: DomainCredentialsToEntity(user.Credentials),
 	}
 }
 

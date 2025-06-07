@@ -35,7 +35,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 		return 0, err
 	}
 
-	query, args, err := QueryBuilder.
+	query, args, err := qbuilder.
 		Insert("books").
 		Columns("title", "authors", "description", "category_id", "cover_urls", "rack", "shelf").
 		Values(book.Title, book.Authors, book.Description, categoryId, book.CoverUrls, book.Rack, book.Shelf).
@@ -68,14 +68,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 }
 
 func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) {
-	/*
-		query := `SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
-		FROM books as b
-		JOIN categories as c ON b.category_id = c.id
-		WHERE b.id = $1`
-	*/
-
-	query, args, err := QueryBuilder.
+	query, args, err := qbuilder.
 		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
 		From("books b").
 		Join("categories c ON b.category_id = c.id").
@@ -96,24 +89,10 @@ func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) 
 	return book, nil
 }
 
-// Delete this method later
-func (b bookRepo) GetBookByIsbn(ctx context.Context, id int) (entity.Book, error) {
-	return entity.Book{}, nil
-}
-
 func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error) {
 	offset := page * limit
 
-	/*
-		query := `--sql
-		SELECT b.id, b.title, b.description, c.name, b.authors, b.cover_urls, b.rack, b.shelf
-		FROM books as b
-		JOIN categories as c ON b.category_id = c.id
-		LIMIT $1
-		OFFSET $2`
-	*/
-
-	query, args, err := QueryBuilder.
+	query, args, err := qbuilder.
 		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
 		From("books b").Join("categories c ON b.category_id = c.id").
 		Limit(uint64(limit)).
@@ -128,12 +107,10 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...inte
 		return []entity.Book{}, err
 	}
 
-	var (
-		book  entity.Book
-		books []entity.Book
-	)
+	var books []entity.Book
 
 	for res.Next() {
+		var book entity.Book
 		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
 			&book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
 			return []entity.Book{}, err
@@ -159,8 +136,9 @@ func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, 
 	}
 
 	var books []entity.Book
-	var book entity.Book
+
 	for res.Next() {
+		var book entity.Book
 		err = res.Scan(&book.ID, &book.Title, &book.Category, &book.Description, &book.Authors,
 			&book.CoverUrls, &book.Rack, &book.Shelf)
 		if err != nil {
@@ -185,7 +163,7 @@ func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]enti
 }
 
 func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error {
-	builder := QueryBuilder.Update("books")
+	builder := qbuilder.Update("books")
 
 	for field, value := range fields {
 		builder = builder.Set(field, value)
@@ -203,31 +181,9 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 		return err
 	}
 
-	/*
-		var (
-			vars []string
-			args []interface{}
-			num  = 1
-		)
-
-		queryBase := "UPDATE books SET"
-
-		for key, value := range fields {
-			vars = append(vars, fmt.Sprintf("%s=$%d", key, num))
-			args = append(args, value)
-			num++
-		}
-
-		values := strings.Join(vars, ", ")
-
-		query := strings.Join([]string{queryBase, values, fmt.Sprintf("WHERE id=$%d", num)}, " ")
-
-		args = append(args, id)
-	*/
-
-	_, execErr := tx.ExecContext(ctx, query, args...)
-	if execErr != nil {
-		return execErr
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -238,7 +194,7 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 }
 
 func (b bookRepo) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
-	query, args, err := QueryBuilder.
+	query, args, err := qbuilder.
 		Update("books").
 		Set("rack", rack).
 		Set("shelf", shelf).
@@ -273,10 +229,10 @@ func (b bookRepo) DeleteBook(ctx context.Context, id int) error {
 		return err
 	}
 
-	res, execErr := tx.ExecContext(ctx, `DELETE FROM books WHERE id=$1`, id)
-	if execErr != nil {
+	res, err := tx.ExecContext(ctx, `DELETE FROM books WHERE id=$1`, id)
+	if err != nil {
 		tx.Rollback()
-		return execErr
+		return err
 	}
 
 	if affected, _ := res.RowsAffected(); affected == 0 {

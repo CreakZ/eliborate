@@ -329,13 +329,7 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 		return
 	}
 
-	placement := struct {
-		Rack  int `json:"rack"`
-		Shelf int `json:"shelf"`
-	}{
-		Rack:  0,
-		Shelf: 0,
-	}
+	placement := dto.BookPlacement{}
 
 	if err := c.ShouldBindJSON(&placement); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))

@@ -5,6 +5,13 @@ import (
 	dto "eliborate/internal/models/dto"
 )
 
+func DomainCredentialsToDto(credentials domain.Credentials) dto.Credentials {
+	return dto.Credentials{
+		Login:    credentials.Login,
+		Password: credentials.Password,
+	}
+}
+
 func DomainBookInfoToDto(book domain.BookInfo) dto.BookInfo {
 	return dto.BookInfo{
 		Title:       book.Title,
@@ -37,23 +44,10 @@ func DomainBookToDto(book domain.Book) dto.Book {
 	}
 }
 
-func DomainAdminUserInfoToDto(user domain.AdminUserInfo) dto.AdminUserInfo {
-	return dto.AdminUserInfo{
-		Login: user.Login,
-	}
-}
-
 func DomainUserInfoToDto(user domain.UserInfo) dto.UserInfo {
 	return dto.UserInfo{
 		Login: user.Login,
 		Name:  user.Name,
-	}
-}
-
-func DomainAdminUserCreateToDto(user domain.AdminUserCreate) dto.AdminUserCreate {
-	return dto.AdminUserCreate{
-		AdminUserInfo: DomainAdminUserInfoToDto(user.AdminUserInfo),
-		Password:      user.Password,
 	}
 }
 
@@ -73,8 +67,8 @@ func DomainUserToDto(user domain.User) dto.User {
 
 func DomainAdminUserToDto(user domain.AdminUser) dto.AdminUser {
 	return dto.AdminUser{
-		ID:              user.ID,
-		AdminUserCreate: DomainAdminUserCreateToDto(user.AdminUserCreate),
+		ID:          user.ID,
+		Credentials: DomainCredentialsToDto(user.Credentials),
 	}
 }
 

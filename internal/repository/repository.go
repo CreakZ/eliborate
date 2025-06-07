@@ -9,7 +9,6 @@ type BookRepo interface {
 	CreateBook(ctx context.Context, book entity.BookCreate) (int, error)
 
 	GetBookById(ctx context.Context, id int) (entity.Book, error)
-	GetBookByIsbn(ctx context.Context, id int) (entity.Book, error)
 	GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
 	GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, error)
@@ -28,9 +27,7 @@ type PublicRepo interface {
 
 type UserRepo interface {
 	Create(ctx context.Context, user entity.UserCreate) (int, error)
-
 	UpdatePassword(ctx context.Context, id int, password string) error
-
 	Delete(ctx context.Context, id int) error
 }
 
@@ -40,10 +37,7 @@ type AdminUserRepo interface {
 
 type CategoryRepo interface {
 	Create(ctx context.Context, categoryName string) error
-
 	GetAll(ctx context.Context) ([]string, error)
-
 	Update(ctx context.Context, id int, newName string) error
-
 	Delete(ctx context.Context, name string) error
 }

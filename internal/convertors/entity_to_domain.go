@@ -5,6 +5,13 @@ import (
 	"eliborate/internal/models/entity"
 )
 
+func EntityCredentialsToDomain(credentials entity.Credentials) domain.Credentials {
+	return domain.Credentials{
+		Login:    credentials.Login,
+		Password: credentials.Password,
+	}
+}
+
 func EntityBookInfoToDomain(book entity.BookInfo) domain.BookInfo {
 	var desc *string
 	if book.Description.Valid {
@@ -41,23 +48,10 @@ func EntityBookToDomain(book entity.Book) domain.Book {
 	}
 }
 
-func EntityAdminUserInfoToDomain(user entity.AdminUserInfo) domain.AdminUserInfo {
-	return domain.AdminUserInfo{
-		Login: user.Login,
-	}
-}
-
 func EntityUserInfoToDomain(user entity.UserInfo) domain.UserInfo {
 	return domain.UserInfo{
 		Login: user.Login,
 		Name:  user.Name,
-	}
-}
-
-func EntityAdminUserCreateToDomain(user entity.AdminUserCreate) domain.AdminUserCreate {
-	return domain.AdminUserCreate{
-		AdminUserInfo: EntityAdminUserInfoToDomain(user.AdminUserInfo),
-		Password:      user.Password,
 	}
 }
 
@@ -77,8 +71,8 @@ func EntityUserToDomain(user entity.User) domain.User {
 
 func EntityAdminUserToDomain(user entity.AdminUser) domain.AdminUser {
 	return domain.AdminUser{
-		ID:              user.ID,
-		AdminUserCreate: EntityAdminUserCreateToDomain(user.AdminUserCreate),
+		ID:          user.ID,
+		Credentials: EntityCredentialsToDomain(user.Credentials),
 	}
 }
 

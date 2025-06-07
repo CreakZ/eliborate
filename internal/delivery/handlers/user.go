@@ -50,8 +50,7 @@ func (u userHandlers) Create(c *gin.Context) {
 		pqErr, ok := err.(*pq.Error)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
-		}
-		if pqErr.Code == "23505" {
+		} else if pqErr.Code == "23505" {
 			c.AbortWithStatusJSON(
 				http.StatusConflict,
 				responses.NewMessageResponse(
