@@ -21,12 +21,6 @@ const (
 	JWTRefreshExpire = "JWT_REFRESH_EXPIRE"
 	JWTSecret        = "JWT_SECRET"
 
-	S3AccessKey       = "S3_ACCESS_KEY"
-	S3SecretKey       = "S3_SECRET_KEY"
-	S3Endpoint        = "S3_ENDPOINT"
-	S3Region          = "S3_REGION"
-	S3ImageBucketName = "S3_IMAGE_BUCKET_NAME"
-
 	MeiliHost      = "MEILI_HOST"
 	MeiliPort      = "MEILI_PORT"
 	MeiliMasterKey = "MEILI_MASTER_KEY"
