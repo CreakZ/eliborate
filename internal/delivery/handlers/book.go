@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"eliborate/internal/constants"
 	"eliborate/internal/convertors"
 	"eliborate/internal/delivery/responses"
@@ -9,10 +10,7 @@ import (
 	"eliborate/internal/service"
 	"eliborate/internal/validators"
 	"eliborate/pkg/storage"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 
@@ -47,30 +45,29 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 	var book dto.BookCreate
 
 	if err := c.ShouldBindJSON(&book); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	result := validators.ValidateBookCreate(&book)
 	if !result.Ok {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(result.Err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(result.Err.Error()))
 		return
 	}
 
 	bookDomain := convertors.DtoBookCreateToDomain(book)
 
-	id, err := b.service.CreateBook(c.Request.Context(), bookDomain)
+	_, err := b.service.CreateBook(context.Background(), bookDomain)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	// replace all c.Request.Context() with more suitable context
 	_, err = b.cache.GetInt(constants.RedisTotalBooks)
 	if errors.Is(err, redis.Nil) {
-		totalBooks, err := b.service.GetBooksTotalCount(c.Request.Context())
+		totalBooks, err := b.service.GetBooksTotalCount(context.Background())
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 			return
 		}
 		b.cache.SetInt(constants.RedisTotalBooks, totalBooks)
@@ -78,13 +75,13 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 		b.cache.Incr(constants.RedisTotalBooks)
 	}
 
-	c.JSON(http.StatusCreated, responses.NewMessageResponse(fmt.Sprintf("book with id %v created successfully", id)))
+	c.JSON(http.StatusCreated, responses.NewSuccessMessageResponse())
 }
 
 // @Summary Get book by id
 // @Description Retrieve book information by its id
 // @Tags books
-// @Param id path int true "Rack Number"
+// @Param id path int true "Book id"
 // @Produce json
 // @Success 200 {array}  dto.Book
 // @Failure 400 {object} responses.MessageResponse
@@ -93,173 +90,138 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 func (b bookHandlers) GetBookById(c *gin.Context) {
 	idRaw := c.Param("id")
 	if idRaw == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no id number provided"))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no id number provided"))
 		return
 	}
 
 	id, err := strconv.Atoi(idRaw)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	book, err := b.service.GetBookById(c.Request.Context(), id)
+	book, err := b.service.GetBookById(context.Background(), id)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, book)
+	c.JSON(http.StatusOK, convertors.DomainBookToDto(book))
 }
 
 // @Summary Get a paginated list of books
-// @Description Retrieve a list of books with pagination
+// @Description Retrieve a list of books with pagination, optional rack filtering and full-text search
 // @Tags books
 // @Param page query int true "Page number"
 // @Param limit query int true "Books limit per page (10, 20, 50 or 100)"
+// @Param rack query int false "Rack number to filter books"
+// @Param text query string false "Full-text search query"
 // @Produce json
-// @Success 200 {object} responses.BookPaginationResponse "page, limit, results (array of dto.Book), total_pages"
+// @Success 200 {object} responses.BookPaginationResponse
 // @Failure 400 {object} responses.MessageResponse
-// @Failure 404 {object} responses.MessageResponse
 // @Failure 422 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
 // @Router /books [get]
 func (b bookHandlers) GetBooks(c *gin.Context) {
-	var count int
-
-	count, err := b.cache.GetInt(constants.RedisTotalBooks)
-	if errors.Is(err, redis.Nil) {
-		count, err := b.service.GetBooksTotalCount(c.Request.Context())
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
-			return
-		}
-		b.cache.SetInt(constants.RedisTotalBooks, count)
-	}
-
-	pageRaw, exists := c.GetQuery("page")
-	if !exists {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no page number provided"))
-		return
-	}
-
-	limitRaw, exists := c.GetQuery("limit")
-	if !exists {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no limit number provided"))
-		return
-	}
+	// should hide all the strategy inside service layer later
+	pageRaw := c.Query("page")
+	limitRaw := c.Query("limit")
+	text := c.Query("text")
+	rackRaw := c.Query("rack")
 
 	page, err := strconv.Atoi(pageRaw)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
-		return
-	}
-
-	if page < 1 {
-		c.AbortWithStatusJSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("'page' shouldn't be less than 1"))
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'page' param"))
 		return
 	}
 
 	limit, err := strconv.Atoi(limitRaw)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnprocessableEntity, responses.NewMessageResponseFromErr(err))
+	if err != nil || !(limit == 10 || limit == 20 || limit == 50 || limit == 100) {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'limit' param (allowed: 10, 20, 50, 100)"))
 		return
 	}
 
-	// this condition limits page size by 4 values
-	if !(limit == 10 || limit == 20 || limit == 50 || limit == 100) {
-		c.AbortWithStatusJSON(
-			http.StatusBadRequest,
-			responses.NewMessageResponse(fmt.Sprintf("limit number: expected 10, 20, 50, 100, got %d", limit)),
+	offset := (page - 1) * limit
+	ctx := c.Request.Context()
+
+	if text != "" {
+		if err := validators.ValidateTextQuery(text); err != nil {
+			c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
+			return
+		}
+
+		books, err := b.service.GetBooksByTextSearch(ctx, text, offset, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+			return
+		}
+
+		booksDto := convertors.DomainBooksSearchToDto(books)
+
+		c.JSON(http.StatusOK, responses.NewBookSearchResponse(booksDto))
+		return
+	}
+
+	if rackRaw != "" {
+		rack, err := strconv.Atoi(rackRaw)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'rack' param"))
+			return
+		}
+
+		books, err := b.service.GetBooksByRack(ctx, rack, offset, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+			return
+		}
+
+		booksDto := convertors.DomainBooksToDto(books)
+
+		c.JSON(
+			http.StatusOK,
+			responses.NewBookPaginationResponse(booksDto).
+				WithPage(page).
+				WithLimit(limit).
+				WithRack(rack),
 		)
 		return
 	}
 
-	if (page-1)*limit > count {
-		c.AbortWithStatusJSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("'page' value too large"))
+	count, err := b.cache.GetInt(constants.RedisTotalBooks)
+	if errors.Is(err, redis.Nil) {
+		count, err = b.service.GetBooksTotalCount(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+			return
+		}
+		b.cache.SetInt(constants.RedisTotalBooks, count)
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	books, err := b.service.GetBooks(c.Request.Context(), page, limit)
+	if offset > count {
+		c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("'page' value too large"))
+		return
+	}
+
+	books, err := b.service.GetBooks(ctx, offset, limit)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	totalPages := count/limit + 1
+	totalPages := (count + limit - 1) / limit
 
-	booksDto := make([]dto.Book, 0, len(books))
-	for _, book := range books {
-		booksDto = append(booksDto, convertors.DomainBookToDto(book))
-	}
+	booksDto := convertors.DomainBooksToDto(books)
 
-	c.JSON(http.StatusOK, responses.NewBookPaginationResponse(page, totalPages, limit, booksDto))
-}
-
-// @Summary Get books by rack number
-// @Description Retrieve all books located in a specific rack
-// @Tags books
-// @Param rack path int true "Rack Number"
-// @Produce json
-// @Success 200 {array}  dto.Book
-// @Failure 400 {object} responses.MessageResponse
-// @Failure 500 {object} responses.MessageResponse
-// @Router /books/racks/{rack} [get]
-func (b bookHandlers) GetBooksByRack(c *gin.Context) {
-	rawRack := c.Param("rack")
-	if rawRack == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "no rack number provided"})
-		return
-	}
-
-	rack, err := strconv.Atoi(rawRack)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	books, err := b.service.GetBooksByRack(c.Request.Context(), rack)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, books)
-}
-
-// @Summary Search books by text
-// @Description Search for books matching a text query
-// @Tags books
-// @Param text query string true "Search Query"
-// @Produce json
-// @Success 200 {array}  responses.BookSearchResponse
-// @Failure 400 {object} responses.MessageResponse
-// @Failure 500 {object} responses.MessageResponse
-// @Router /books/search [get]
-func (b bookHandlers) GetBooksByTextSearch(c *gin.Context) {
-	text, exists := c.GetQuery("text")
-	if !exists {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "no 'text' query param provided"})
-		return
-	}
-
-	if err := validators.ValidateTextQuery(text); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
-		return
-	}
-
-	books, err := b.service.GetBooksByTextSearch(c.Request.Context(), text)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
-		return
-	}
-
-	booksDto := make([]dto.BookSearch, 0, len(books))
-	for _, book := range books {
-		booksDto = append(booksDto, convertors.DomainBookSearchToDto(book))
-	}
-
-	c.JSON(http.StatusOK, responses.NewBookSearchResponse(booksDto))
+	c.JSON(
+		http.StatusOK,
+		responses.NewBookPaginationResponse(booksDto).
+			WithPage(page).
+			WithTotalPages(totalPages).
+			WithLimit(limit),
+	)
 }
 
 // @Summary Update book information
@@ -267,6 +229,7 @@ func (b bookHandlers) GetBooksByTextSearch(c *gin.Context) {
 // @Tags books
 // @Accept json
 // @Produce json
+// @Param id path int true "Book id"
 // @Param book body dto.UpdateBookInfo true "Update Book Info"
 // @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
@@ -277,37 +240,31 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	var updateBook dto.UpdateBookInfo
 
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+	if err = c.ShouldBindJSON(&updateBook); err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if err = json.Unmarshal(body, &updateBook); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
-		return
-	}
-
-	if updateBook.Authors == nil && updateBook.Category == nil && updateBook.Description == nil &&
+	if updateBook.Authors == nil && updateBook.Description == nil &&
 		len(updateBook.CoverUrls) == 0 && updateBook.Title == nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no parameters provided"))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no parameters provided"))
 		return
 	}
 
 	updateBookDomain := convertors.DtoUpdateBookInfoToDomain(updateBook)
 
 	if err = b.service.UpdateBookInfo(c.Request.Context(), id, updateBookDomain); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, responses.NewMessageResponse(fmt.Sprintf("info about book with id %v updated successfully", id)))
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }
 
 // @Summary Update book placement
@@ -315,6 +272,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 // @Tags books
 // @Accept json
 // @Produce json
+// @Param id path int true "Book id"
 // @Param book body dto.BookPlacement true "Book Placement"
 // @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
@@ -325,29 +283,24 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	placement := dto.BookPlacement{}
 
 	if err := c.ShouldBindJSON(&placement); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	err = b.service.UpdateBookPlacement(c.Request.Context(), id, placement.Rack, placement.Shelf)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		responses.NewMessageResponse(
-			fmt.Sprintf("placement of book with id %v updated successfully", id),
-		),
-	)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }
 
 // @Summary Delete a book by its ID
@@ -364,30 +317,30 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 func (b bookHandlers) DeleteBook(c *gin.Context) {
 	rawID := c.Param("id")
 	if rawID == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse("no 'id' provided"))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no 'id' provided"))
 		return
 	}
 
 	id, err := strconv.Atoi(rawID)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	if id < 1 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "id value is less than 1"})
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("id value is less than 1"))
 		return
 	}
 
 	if err = b.service.DeleteBook(c.Request.Context(), id); err != nil {
 		switch err {
 		case errs.ErrNoRowsAffected:
-			c.AbortWithStatus(http.StatusNotFound)
+			c.JSON(http.StatusNotFound, responses.NewMessageResponse("book not found"))
 		default:
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("book with id %d deleted successfully", id)})
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }

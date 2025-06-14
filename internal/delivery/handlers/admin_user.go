@@ -3,8 +3,8 @@ package handlers
 import (
 	"eliborate/internal/constants"
 	"eliborate/internal/delivery/responses"
+	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,10 +26,9 @@ func InitAdminUserHandlers(service service.AdminUserService) AdminUserHandlers {
 // @Tags admin auth
 // @Accept json
 // @Produce json
-// @Param id body int true "Admin user ID"
 // @Param password body string true "New admin user password"
 // @Security BearerAuth
-// @Success 200
+// @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 401 {object} responses.MessageResponse
 // @Failure 403 {object} responses.MessageResponse
@@ -38,30 +37,26 @@ func InitAdminUserHandlers(service service.AdminUserService) AdminUserHandlers {
 func (a adminUserHandlers) UpdatePassword(c *gin.Context) {
 	id, role, err := GetIdAndRoleFromKeys(c.Keys)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusUnauthorized, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	if role != constants.RoleAdmin {
-		c.AbortWithStatusJSON(http.StatusForbidden, responses.NewMessageResponse(fmt.Sprintf("insufficient role: '%s'", role)))
+		c.JSON(http.StatusForbidden, responses.NewMessageResponse("insufficient role"))
 		return
 	}
 
-	body := struct {
-		Password string `json:"password"`
-	}{
-		Password: "",
-	}
+	update := dto.PasswordUpdate{}
 
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if err := a.service.UpdatePassword(c.Request.Context(), id, body.Password); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+	if err := a.service.UpdatePassword(c.Request.Context(), id, update.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }

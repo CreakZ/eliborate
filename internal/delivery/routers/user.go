@@ -18,7 +18,7 @@ func InitUserRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.M
 
 	group.POST("", userHandlers.Create)
 
-	group.PATCH("", middleware.Authorize(), userHandlers.UpdatePassword)
+	group.PATCH("", middleware.BearerAuthMiddleware(), userHandlers.UpdatePassword)
 
-	group.DELETE("", middleware.Authorize(), userHandlers.Delete)
+	group.DELETE("", middleware.BearerAuthMiddleware(), userHandlers.Delete)
 }
