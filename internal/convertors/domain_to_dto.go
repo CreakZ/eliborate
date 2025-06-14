@@ -17,7 +17,6 @@ func DomainBookInfoToDto(book domain.BookInfo) dto.BookInfo {
 		Title:       book.Title,
 		Authors:     book.Authors,
 		Description: book.Description,
-		Category:    book.Category,
 		CoverUrls:   book.CoverUrls,
 	}
 }
@@ -40,8 +39,17 @@ func DomainBookToDto(book domain.Book) dto.Book {
 	return dto.Book{
 		ID:            book.ID,
 		BookInfo:      DomainBookInfoToDto(book.BookInfo),
+		Category:      book.Category,
 		BookPlacement: DomainBookPlacementToDto(book.BookPlacement),
 	}
+}
+
+func DomainBooksToDto(books []domain.Book) []dto.Book {
+	booksDto := make([]dto.Book, 0, len(books))
+	for _, book := range books {
+		booksDto = append(booksDto, DomainBookToDto(book))
+	}
+	return booksDto
 }
 
 func DomainUserInfoToDto(user domain.UserInfo) dto.UserInfo {
@@ -80,4 +88,29 @@ func DomainBookSearchToDto(book domain.BookSearch) dto.BookSearch {
 		Description: book.Description,
 		Category:    book.Category,
 	}
+}
+
+func DomainBooksSearchToDto(books []domain.BookSearch) []dto.BookSearch {
+	booksDto := make([]dto.BookSearch, 0, len(books))
+	for _, book := range books {
+		booksDto = append(booksDto, DomainBookSearchToDto(book))
+	}
+	return booksDto
+}
+
+func DomainCategoryToDto(category domain.Category) dto.Category {
+	return dto.Category{
+		ID:   category.ID,
+		Name: category.Name,
+	}
+}
+
+func DomainCategoriesToDto(categories []domain.Category) []dto.Category {
+	c := make([]dto.Category, 0, len(categories))
+
+	for _, category := range categories {
+		c = append(c, DomainCategoryToDto(category))
+	}
+
+	return c
 }

@@ -17,7 +17,6 @@ func DtoBookInfoToDomain(book dto.BookInfo) domain.BookInfo {
 		Title:       book.Title,
 		Authors:     book.Authors,
 		Description: book.Description,
-		Category:    book.Category,
 		CoverUrls:   book.CoverUrls,
 	}
 }
@@ -32,6 +31,7 @@ func DtoBookPlacementToDomain(book dto.BookPlacement) domain.BookPlacement {
 func DtoBookCreateToDomain(book dto.BookCreate) domain.BookCreate {
 	return domain.BookCreate{
 		BookInfo:      DtoBookInfoToDomain(book.BookInfo),
+		CategoryID:    book.CategoryID,
 		BookPlacement: DtoBookPlacementToDomain(book.BookPlacement),
 	}
 }
@@ -87,7 +87,7 @@ func DtoUpdateBookInfoToDomain(updateBook dto.UpdateBookInfo) domain.UpdateBookI
 		Title:       updateBook.Title,
 		Authors:     updateBook.Authors,
 		Description: updateBook.Description,
-		Category:    updateBook.Category,
+		CategoryID:  updateBook.CategoryID,
 		CoverUrls:   updateBook.CoverUrls,
 	}
 }

@@ -9,8 +9,7 @@ import (
 type BookInfo struct {
 	Title       string
 	Authors     pq.StringArray
-	Description sql.NullString
-	Category    string
+	Description string
 	CoverUrls   pq.StringArray
 }
 
@@ -20,12 +19,14 @@ type BookPlacement struct {
 
 type BookCreate struct {
 	BookInfo
+	CategoryID int
 	BookPlacement
 }
 
 type Book struct {
 	ID int
 	BookInfo
+	Category sql.NullString
 	BookPlacement
 }
 

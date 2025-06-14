@@ -13,15 +13,10 @@ func EntityCredentialsToDomain(credentials entity.Credentials) domain.Credential
 }
 
 func EntityBookInfoToDomain(book entity.BookInfo) domain.BookInfo {
-	var desc *string
-	if book.Description.Valid {
-		desc = &book.Description.String
-	}
 	return domain.BookInfo{
 		Title:       book.Title,
 		Authors:     book.Authors,
-		Description: desc,
-		Category:    book.Category,
+		Description: book.Description,
 		CoverUrls:   book.CoverUrls,
 	}
 }
@@ -41,9 +36,14 @@ func EntityBookCreateToDomain(book entity.BookCreate) domain.BookCreate {
 }
 
 func EntityBookToDomain(book entity.Book) domain.Book {
+	var category string
+	if book.Category.Valid {
+		category = book.Category.String
+	}
 	return domain.Book{
 		ID:            book.ID,
 		BookInfo:      EntityBookInfoToDomain(book.BookInfo),
+		Category:      category,
 		BookPlacement: EntityBookPlacementToDomain(book.BookPlacement),
 	}
 }
@@ -84,4 +84,21 @@ func EntityBookSearchToDomain(book entity.BookSearch) domain.BookSearch {
 		Description: book.Description,
 		Category:    book.Category,
 	}
+}
+
+func EntityCategoryToDomain(category entity.Category) domain.Category {
+	return domain.Category{
+		ID:   category.ID,
+		Name: category.Name,
+	}
+}
+
+func EntityCategoriesToDomain(categories []entity.Category) []domain.Category {
+	c := make([]domain.Category, 0, len(categories))
+
+	for _, category := range categories {
+		c = append(c, EntityCategoryToDomain(category))
+	}
+
+	return c
 }
