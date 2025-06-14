@@ -43,16 +43,10 @@ func (b bookService) GetBookById(ctx context.Context, id int) (domain.Book, erro
 	return convertors.EntityBookToDomain(book), nil
 }
 
-// TODO
-func (b bookService) GetBookByIsbn(ctx context.Context, isbn string) (domain.Book, error) {
-	return domain.Book{}, nil
-}
-
-func (b bookService) GetBooks(ctx context.Context, page, limit int, filter ...any) ([]domain.Book, error) {
-	shiftedPage := page - 1
-	booksRaw, err := b.repo.GetBooks(ctx, shiftedPage, limit)
+func (b bookService) GetBooks(ctx context.Context, offset, limit int) ([]domain.Book, error) {
+	booksRaw, err := b.repo.GetBooks(ctx, offset, limit)
 	if err != nil {
-		return []domain.Book{}, err
+		return nil, err
 	}
 
 	books := make([]domain.Book, 0, len(booksRaw))
@@ -70,26 +64,25 @@ func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]domain.Book, error) {
-	booksRaw, err := b.repo.GetBooksByRack(ctx, rack)
+func (b bookService) GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]domain.Book, error) {
+	booksRaw, err := b.repo.GetBooksByRack(ctx, rack, offset, limit)
 	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by rack %v", err.Error()))
-		return []domain.Book{}, err
+		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get books by rack failed: %v", err))
+		return nil, err
 	}
 
 	books := make([]domain.Book, len(booksRaw))
-
 	for i := range booksRaw {
 		books[i] = convertors.EntityBookToDomain(booksRaw[i])
 	}
-	return books, err
+	return books, nil
 }
 
-func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]domain.BookSearch, error) {
-	booksDomain, err := b.repo.GetBooksByTextSearch(ctx, text)
+func (b bookService) GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]domain.BookSearch, error) {
+	booksDomain, err := b.repo.GetBooksByTextSearch(ctx, text, offset, limit)
 	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by fulltext search %s", err.Error()))
-		return []domain.BookSearch{}, err
+		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get books by fulltext search failed: %v", err))
+		return nil, err
 	}
 
 	books := make([]domain.BookSearch, len(booksDomain))
