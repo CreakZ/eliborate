@@ -6,16 +6,12 @@ import (
 )
 
 func EntityBookSearchFromEntityBookCreate(bookId int, book entity.BookCreate) entity.BookSearch {
-	desc := ""
-	if book.Description.Valid {
-		desc = book.Description.String
-	}
 	return entity.BookSearch{
 		ID:          bookId,
 		Title:       book.Title,
 		Authors:     book.Authors,
-		Description: desc,
-		Category:    book.Category,
+		Description: book.Description,
+		Category:    "", // поменять потом, надо достать categoryName из запроса на создание
 	}
 }
 

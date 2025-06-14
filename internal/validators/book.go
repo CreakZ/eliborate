@@ -3,7 +3,7 @@ package validators
 import (
 	"eliborate/internal/errs"
 	"eliborate/internal/models/dto"
-	"fmt"
+	"errors"
 )
 
 type Result struct {
@@ -21,7 +21,7 @@ func NewOkResult() Result {
 func NewErrResult(message string) Result {
 	return Result{
 		Ok:  false,
-		Err: fmt.Errorf(message),
+		Err: errors.New(message),
 	}
 }
 
@@ -48,8 +48,6 @@ func ValidateBookInfo(book *dto.BookInfo) Result {
 		return NewErrResultFromErr(errs.ErrBookEmptyTitle)
 	case len(book.Authors) == 0 || containsEmptyStrings(book.Authors):
 		return NewErrResultFromErr(errs.ErrBookEmptyAuthors)
-	case book.Category == "":
-		return NewErrResultFromErr(errs.ErrBookEmptyCategory)
 	}
 	return NewOkResult()
 }

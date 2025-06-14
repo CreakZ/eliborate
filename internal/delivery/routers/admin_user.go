@@ -16,5 +16,5 @@ func InitAdminUsersRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middle
 	adminService := service.InitAdminUserService(adminRepo, logger)
 	adminHandlers := handlers.InitAdminUserHandlers(adminService)
 
-	group.PATCH("", middleware.Authorize(), adminHandlers.UpdatePassword)
+	group.PATCH("", middleware.BearerAuthMiddleware(), adminHandlers.UpdatePassword)
 }

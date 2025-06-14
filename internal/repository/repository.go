@@ -9,10 +9,10 @@ type BookRepo interface {
 	CreateBook(ctx context.Context, book entity.BookCreate) (int, error)
 
 	GetBookById(ctx context.Context, id int) (entity.Book, error)
-	GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error)
+	GetBooks(ctx context.Context, offset, limit int) ([]entity.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
-	GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, error)
-	GetBooksByTextSearch(ctx context.Context, text string) ([]entity.BookSearch, error)
+	GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]entity.Book, error)
+	GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]entity.BookSearch, error)
 
 	UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error
 	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error
@@ -37,7 +37,7 @@ type AdminUserRepo interface {
 
 type CategoryRepo interface {
 	Create(ctx context.Context, categoryName string) error
-	GetAll(ctx context.Context) ([]string, error)
+	GetAll(ctx context.Context) ([]entity.Category, error)
 	Update(ctx context.Context, id int, newName string) error
-	Delete(ctx context.Context, name string) error
+	Delete(ctx context.Context, id int) error
 }

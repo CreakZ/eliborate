@@ -6,7 +6,6 @@ import (
 	"eliborate/pkg/storage"
 	"eliborate/pkg/utils"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/meilisearch/meilisearch-go"
@@ -16,14 +15,13 @@ func InitRouting(
 	engine *gin.Engine,
 	db *sqlx.DB,
 	cache *storage.RedisCache,
-	storage *s3.S3,
 	logger *logging.Log,
 	jwt utils.JWT,
 	middleware middleware.Middleware,
 	search meilisearch.IndexManager,
 ) {
 	booksRG := engine.Group("/books")
-	publicRG := engine.Group("/public")
+	publicRG := engine.Group("/auth")
 	userRG := engine.Group("/users")
 	adminUserRG := engine.Group("/admins")
 	catRG := engine.Group("/categories")

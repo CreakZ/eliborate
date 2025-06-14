@@ -9,8 +9,6 @@
 // @in header
 // @name Authorization
 
-// @BasePath /api/v1
-
 package main
 
 import (
@@ -79,7 +77,7 @@ func main() {
 	logger.InfoLogger.Info().Msg("Search engine initialized successfully")
 
 	// Init routing
-	routers.InitRouting(server, db, cache, nil, logger, jwtUtil, middleW, search)
+	routers.InitRouting(server, db, cache, logger, jwtUtil, middleW, search)
 
 	// Server startup
 	if err := server.Run(":8080"); err != nil {

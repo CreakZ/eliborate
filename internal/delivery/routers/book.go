@@ -25,15 +25,13 @@ func InitBooksRouter(
 	bookService := service.InitBookService(bookRepo, log)
 	bookHandlers := handlers.InitBookHandlers(bookService, cache)
 
-	rg.POST("", middleware.Authorize(), bookHandlers.CreateBook)
+	rg.POST("", middleware.BearerAuthMiddleware(), bookHandlers.CreateBook)
 
 	rg.GET("/:id", bookHandlers.GetBookById)
 	rg.GET("", bookHandlers.GetBooks)
-	rg.GET("/racks/:rack", bookHandlers.GetBooksByRack)
-	rg.GET("/search", bookHandlers.GetBooksByTextSearch)
 
-	rg.PATCH("/:id/info", middleware.Authorize(), bookHandlers.UpdateBookInfo)
-	rg.PATCH("/:id/placement", middleware.Authorize(), bookHandlers.UpdateBookPlacement)
+	rg.PATCH("/:id/info", middleware.BearerAuthMiddleware(), bookHandlers.UpdateBookInfo)
+	rg.PATCH("/:id/placement", middleware.BearerAuthMiddleware(), bookHandlers.UpdateBookPlacement)
 
-	rg.DELETE("/:id", middleware.Authorize(), bookHandlers.DeleteBook)
+	rg.DELETE("/:id", middleware.BearerAuthMiddleware(), bookHandlers.DeleteBook)
 }

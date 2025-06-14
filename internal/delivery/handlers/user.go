@@ -39,19 +39,19 @@ func (u userHandlers) Create(c *gin.Context) {
 	var userCreate dto.UserCreate
 
 	if err := c.ShouldBindJSON(&userCreate); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	userCreateDomain := convertors.DtoUserCreateToDomain(userCreate)
 
-	id, err := u.service.Create(c.Request.Context(), userCreateDomain)
+	_, err := u.service.Create(c.Request.Context(), userCreateDomain)
 	if err != nil {
 		pqErr, ok := err.(*pq.Error)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		} else if pqErr.Code == "23505" {
-			c.AbortWithStatusJSON(
+			c.JSON(
 				http.StatusConflict,
 				responses.NewMessageResponse(
 					fmt.Sprintf("user with '%s' login already exists", userCreateDomain.Login),
@@ -61,7 +61,7 @@ func (u userHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, responses.NewMessageResponse(fmt.Sprintf("user with id %d created successfully", id)))
+	c.JSON(http.StatusCreated, responses.NewSuccessMessageResponse())
 }
 
 // UpdatePassword godoc
@@ -73,7 +73,7 @@ func (u userHandlers) Create(c *gin.Context) {
 // @Param id body int true "User ID"
 // @Param password body string true "New password"
 // @Security BearerAuth
-// @Success 200
+// @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
 // @Failure 401 {object} responses.MessageResponse
 // @Failure 500 {object} responses.MessageResponse
@@ -81,27 +81,23 @@ func (u userHandlers) Create(c *gin.Context) {
 func (u userHandlers) UpdatePassword(c *gin.Context) {
 	id, err := GetIdFromKeys(c.Keys)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponseFromErr(err))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	body := struct {
-		Password string `json:"password"`
-	}{
-		Password: "",
-	}
+	update := dto.PasswordUpdate{}
 
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if err := u.service.UpdatePassword(c.Request.Context(), id, body.Password); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, responses.NewMessageResponseFromErr(err))
+	if err := u.service.UpdatePassword(c.Request.Context(), id, update.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }
 
 // DeleteUser godoc
@@ -119,14 +115,14 @@ func (u userHandlers) UpdatePassword(c *gin.Context) {
 func (u userHandlers) Delete(c *gin.Context) {
 	id, err := GetIdFromKeys(c.Keys)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponseFromErr(err))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
 	if err := u.service.Delete(c.Request.Context(), id); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponseFromErr(err))
+		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }

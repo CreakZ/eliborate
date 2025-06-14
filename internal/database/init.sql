@@ -62,7 +62,7 @@ VALUES
 CREATE TABLE IF NOT EXISTS books (
     id          SERIAL    PRIMARY KEY,
     title       VARCHAR   NOT NULL,
-    description TEXT      NULL,
+    description TEXT,
     category_id INTEGER,
     authors     VARCHAR[] NOT NULL,
     cover_urls  VARCHAR[] NULL,
@@ -84,7 +84,3 @@ CREATE TABLE IF NOT EXISTS admins (
     login    VARCHAR UNIQUE,
     password VARCHAR
 );
-
-INSERT INTO admins (login, password)
-VALUES 
-	('yurii_rusakov62', '$2b$12$DtCXbAIiPX4vCQn/QRR5o.2oowaRYEBJXBexHVpgl9IprDnkkpL26')

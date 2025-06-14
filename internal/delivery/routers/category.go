@@ -16,8 +16,8 @@ func InitCategoryRouter(rg *gin.RouterGroup, db *sqlx.DB, middleware middleware.
 	catService := service.NewCategoryService(catRepo)
 	catHandlers := handlers.NewCategoryHandlers(catService)
 
-	rg.POST("", middleware.Authorize(), catHandlers.Create)
-	rg.GET("", middleware.Authorize(), catHandlers.GetAll)
-	rg.PATCH("", middleware.Authorize(), catHandlers.Update)
-	rg.DELETE("", middleware.Authorize(), catHandlers.Delete)
+	rg.POST("", middleware.BearerAuthMiddleware(), catHandlers.Create)
+	rg.GET("", middleware.BearerAuthMiddleware(), catHandlers.GetAll)
+	rg.PATCH("/:id", middleware.BearerAuthMiddleware(), catHandlers.Update)
+	rg.DELETE("/:id", middleware.BearerAuthMiddleware(), catHandlers.Delete)
 }

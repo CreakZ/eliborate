@@ -9,8 +9,6 @@ type BookHandlers interface {
 
 	GetBookById(c *gin.Context)
 	GetBooks(c *gin.Context)
-	GetBooksByRack(c *gin.Context)
-	GetBooksByTextSearch(c *gin.Context)
 
 	UpdateBookInfo(c *gin.Context)
 	UpdateBookPlacement(c *gin.Context)

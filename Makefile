@@ -7,5 +7,5 @@ convertors_test:
 	cd internal/convertors && go test
 
 # генерация документации
-docs:
+swagger:
 	swag init --dir ./cmd,./internal/delivery/handlers,./internal/delivery/responses --parseDependency

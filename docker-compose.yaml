@@ -55,10 +55,10 @@ services:
       - mdb_data:/meili_data/data.ms/
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:7700/health"]
-      interval: 1m30s
+      start_period: 20s
+      interval: 10s
       timeout: 1s
       retries: 3
-      start_period: 15s
 
 
 volumes:

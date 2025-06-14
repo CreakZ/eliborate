@@ -1,7 +1,6 @@
 package convertors
 
 import (
-	"database/sql"
 	domain "eliborate/internal/models/domain"
 	"eliborate/internal/models/entity"
 
@@ -16,16 +15,10 @@ func DomainCredentialsToEntity(credentials domain.Credentials) entity.Credential
 }
 
 func DomainBookInfoToEntity(book domain.BookInfo) entity.BookInfo {
-	desc := sql.NullString{}
-	if book.Description != nil {
-		desc.String = *book.Description
-		desc.Valid = true
-	}
 	return entity.BookInfo{
 		Title:       book.Title,
 		Authors:     book.Authors,
-		Description: desc,
-		Category:    book.Category,
+		Description: book.Description,
 		CoverUrls:   book.CoverUrls,
 	}
 }
@@ -40,6 +33,7 @@ func DomainBookPlacementToEntity(book domain.BookPlacement) entity.BookPlacement
 func DomainBookCreateToEntity(book domain.BookCreate) entity.BookCreate {
 	return entity.BookCreate{
 		BookInfo:      DomainBookInfoToEntity(book.BookInfo),
+		CategoryID:    book.CategoryID,
 		BookPlacement: DomainBookPlacementToEntity(book.BookPlacement),
 	}
 }
@@ -99,8 +93,8 @@ func UpdateBookInfoToMap(book domain.UpdateBookInfo) map[string]any {
 		values["authors"] = authors
 	}
 
-	if book.Category != nil {
-		values["category"] = *book.Category
+	if book.CategoryID != 0 {
+		values["category_id"] = book.CategoryID
 	}
 
 	if book.Description != nil {

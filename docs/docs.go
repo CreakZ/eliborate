@@ -20,6 +20,11 @@ const docTemplate = `{
     "paths": {
         "/admins": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update admin user password according to his ID",
                 "consumes": [
                     "application/json"
@@ -33,15 +38,6 @@ const docTemplate = `{
                 "summary": "Update admin user password",
                 "parameters": [
                     {
-                        "description": "Admin user ID",
-                        "name": "id",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
                         "description": "New admin user password",
                         "name": "password",
                         "in": "body",
@@ -53,7 +49,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -82,9 +81,110 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/admin": {
+            "post": {
+                "description": "Logs in an admin user and returns an access token if the login credentials are valid.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login an admin user",
+                "parameters": [
+                    {
+                        "description": "Login of the admin user",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.Credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Signed JWT",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/user": {
+            "post": {
+                "description": "Logs in a regular user and returns an access token if the login credentials are valid.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logs in a regular user",
+                "parameters": [
+                    {
+                        "description": "Login of the user",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.Credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Access token",
+                        "schema": {
+                            "$ref": "#/definitions/responses.JwtResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/books": {
             "get": {
-                "description": "Retrieve a list of books with pagination",
+                "description": "Retrieve a list of books with pagination, optional rack filtering and full-text search",
                 "produces": [
                     "application/json"
                 ],
@@ -106,23 +206,29 @@ const docTemplate = `{
                         "name": "limit",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Rack number to filter books",
+                        "name": "rack",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Full-text search query",
+                        "name": "text",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "page, limit, results (array of dto.Book), total_pages",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/responses.BookPaginationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/responses.MessageResponse"
                         }
@@ -191,138 +297,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/books/isbn/{isbn}": {
-            "get": {
-                "description": "Retrieve a book's data from online libraries (Читай Город, Livelib) and book APIs (Google Book API) using its ISBN number",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "books"
-                ],
-                "summary": "Get a book by its ISBN",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ISBN",
-                        "name": "isbn",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.Book"
-                        }
-                    },
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/books/racks/{rack}": {
-            "get": {
-                "description": "Retrieve all books located in a specific rack",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "books"
-                ],
-                "summary": "Get books by rack number",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Rack Number",
-                        "name": "rack",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.Book"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/books/search": {
-            "get": {
-                "description": "Search for books matching a text query",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "books"
-                ],
-                "summary": "Search books by text",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Search Query",
-                        "name": "text",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/responses.BookSearchResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/books/{id}": {
             "get": {
                 "description": "Retrieve book information by its id",
@@ -336,7 +310,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Rack Number",
+                        "description": "Book id",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -437,6 +411,13 @@ const docTemplate = `{
                 "summary": "Update book information",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Book id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Update Book Info",
                         "name": "book",
                         "in": "body",
@@ -488,6 +469,13 @@ const docTemplate = `{
                 "summary": "Update book placement",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Book id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Book Placement",
                         "name": "book",
                         "in": "body",
@@ -535,10 +523,10 @@ const docTemplate = `{
                 ],
                 "summary": "Get all book categories",
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.MessageResponse"
+                            "$ref": "#/definitions/responses.Categories"
                         }
                     },
                     "500": {
@@ -586,7 +574,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/categories/{id}": {
             "delete": {
                 "security": [
                     {
@@ -601,9 +591,24 @@ const docTemplate = `{
                     "categories"
                 ],
                 "summary": "Delete book category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/responses.MessageResponse"
                         }
@@ -613,9 +618,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/responses.MessageResponse"
                         }
-                    },
-                    "503": {
-                        "description": "handler is unavailable"
                     }
                 }
             },
@@ -633,9 +635,33 @@ const docTemplate = `{
                     "categories"
                 ],
                 "summary": "Update book category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New category name",
+                        "name": "book",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CategoryCreateUpdate"
+                        }
+                    }
+                ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/responses.MessageResponse"
                         }
@@ -644,119 +670,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/responses.MessageResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "handler is unavailable"
-                    }
-                }
-            }
-        },
-        "/public/admin": {
-            "post": {
-                "description": "Logs in an admin user and returns an access token if the login credentials are valid.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Login an admin user",
-                "parameters": [
-                    {
-                        "description": "Login of the admin user",
-                        "name": "credentials",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.AdminUserCreate"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Signed JWT",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/public/user": {
-            "post": {
-                "description": "Logs in a regular user and returns an access token if the login credentials are valid.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logs in a regular user",
-                "parameters": [
-                    {
-                        "description": "Login of the user",
-                        "name": "credentials",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UserCreate"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Access token",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -904,7 +817,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.MessageResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -929,17 +845,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.AdminUserCreate": {
-            "type": "object",
-            "properties": {
-                "login": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.Book": {
             "type": "object",
             "properties": {
@@ -984,8 +889,8 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "category": {
-                    "type": "string"
+                "category_id": {
+                    "type": "integer"
                 },
                 "cover_urls": {
                     "type": "array",
@@ -1018,25 +923,32 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.BookSearch": {
+        "dto.Category": {
             "type": "object",
             "properties": {
-                "authors": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "category": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
-                "title": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CategoryCreateUpdate": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Credentials": {
+            "type": "object",
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -1050,8 +962,8 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "category": {
-                    "type": "string"
+                "category_id": {
+                    "type": "integer"
                 },
                 "cover_urls": {
                     "type": "array",
@@ -1084,7 +996,7 @@ const docTemplate = `{
         "responses.BookPaginationResponse": {
             "type": "object",
             "properties": {
-                "items": {
+                "books": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.Book"
@@ -1096,22 +1008,33 @@ const docTemplate = `{
                 "page": {
                     "type": "integer"
                 },
+                "rack": {
+                    "type": "integer"
+                },
+                "search_query": {
+                    "type": "string"
+                },
                 "total_pages": {
                     "type": "integer"
                 }
             }
         },
-        "responses.BookSearchResponse": {
+        "responses.Categories": {
             "type": "object",
             "properties": {
-                "items": {
+                "categories": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.BookSearch"
+                        "$ref": "#/definitions/dto.Category"
                     }
-                },
-                "total_items": {
-                    "type": "integer"
+                }
+            }
+        },
+        "responses.JwtResponse": {
+            "type": "object",
+            "properties": {
+                "jwt": {
+                    "type": "string"
                 }
             }
         },
@@ -1137,7 +1060,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/api/v1",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Eliborate API Documentation",
 	Description:      "Swagger OpenAPI documentation for Eliborate service",
