@@ -29,23 +29,17 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 		return 0, err
 	}
 
-	var categoryId int
-	row := tx.QueryRowContext(ctx, `SELECT id FROM categories WHERE name = $1`, book.Category)
-	if err = row.Scan(&categoryId); err != nil {
-		return 0, err
-	}
-
 	query, args, err := qbuilder.
 		Insert("books").
 		Columns("title", "authors", "description", "category_id", "cover_urls", "rack", "shelf").
-		Values(book.Title, book.Authors, book.Description, categoryId, book.CoverUrls, book.Rack, book.Shelf).
+		Values(book.Title, book.Authors, book.Description, book.CategoryID, book.CoverUrls, book.Rack, book.Shelf).
 		Suffix("RETURNING \"id\"").
 		ToSql()
 	if err != nil {
 		return 0, err
 	}
 
-	row = tx.QueryRowContext(ctx, query, args...)
+	row := tx.QueryRowContext(ctx, query, args...)
 
 	var bookID int
 	if err = row.Scan(&bookID); err != nil {
@@ -61,6 +55,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 	}
 
 	if err = tx.Commit(); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -89,12 +84,11 @@ func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) 
 	return book, nil
 }
 
-func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...interface{}) ([]entity.Book, error) {
-	offset := page * limit
-
+func (b bookRepo) GetBooks(ctx context.Context, offset, limit int) ([]entity.Book, error) {
 	query, args, err := qbuilder.
 		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
-		From("books b").Join("categories c ON b.category_id = c.id").
+		From("books b").
+		Join("categories c ON b.category_id = c.id").
 		Limit(uint64(limit)).
 		Offset(uint64(offset)).
 		ToSql()
@@ -106,13 +100,12 @@ func (b bookRepo) GetBooks(ctx context.Context, page, limit int, filters ...inte
 	if err != nil {
 		return []entity.Book{}, err
 	}
+	defer res.Close()
 
 	var books []entity.Book
-
 	for res.Next() {
 		var book entity.Book
-		if err = res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors,
-			&book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
+		if err := res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
 			return []entity.Book{}, err
 		}
 		books = append(books, book)
@@ -129,35 +122,47 @@ func (b bookRepo) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return totalCount, nil
 }
 
-func (b bookRepo) GetBooksByRack(ctx context.Context, rack int) ([]entity.Book, error) {
-	res, err := b.db.QueryContext(ctx, `SELECT * FROM books WHERE rack=$1`, rack)
+func (b bookRepo) GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]entity.Book, error) {
+	query, args, err := qbuilder.
+		Select("id", "title", "description", "category_id", "authors", "cover_urls", "rack", "shelf").
+		From("books").
+		Where(squirrel.Eq{"rack": rack}).
+		Offset(uint64(offset)).
+		Limit(uint64(limit)).
+		ToSql()
 	if err != nil {
 		return []entity.Book{}, err
 	}
 
-	var books []entity.Book
+	res, err := b.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
 
+	var books []entity.Book
 	for res.Next() {
 		var book entity.Book
-		err = res.Scan(&book.ID, &book.Title, &book.Category, &book.Description, &book.Authors,
-			&book.CoverUrls, &book.Rack, &book.Shelf)
-		if err != nil {
-			return []entity.Book{}, err
+		if err := res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
+			return nil, err
 		}
 		books = append(books, book)
 	}
+
 	return books, nil
 }
 
-func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string) ([]entity.BookSearch, error) {
+func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]entity.BookSearch, error) {
 	searchResp, err := b.search.Search(
 		text,
 		&meilisearch.SearchRequest{
 			AttributesToSearchOn: []string{"title", "authors", "description"},
+			Limit:                int64(limit),
+			Offset:               int64(offset),
 		},
 	)
 	if err != nil {
-		return []entity.BookSearch{}, err
+		return nil, err
 	}
 	return convertors.BooksFromMeiliDocuments(searchResp.Hits), nil
 }
@@ -187,6 +192,7 @@ func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]
 	}
 
 	if err = tx.Commit(); err != nil {
+		tx.Rollback()
 		return err
 	}
 

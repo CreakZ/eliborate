@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"eliborate/internal/errs"
+	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -35,19 +36,19 @@ func (c categoryRepo) Create(ctx context.Context, categoryName string) error {
 	return nil
 }
 
-func (c categoryRepo) GetAll(ctx context.Context) ([]string, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT name from categories`)
+func (c categoryRepo) GetAll(ctx context.Context) ([]entity.Category, error) {
+	rows, err := c.db.QueryContext(ctx, `SELECT id, name from categories`)
 	if err != nil {
-		return []string{}, err
+		return []entity.Category{}, err
 	}
 
 	var (
-		categories []string
-		category   string
+		categories []entity.Category
+		category   entity.Category
 	)
 	for rows.Next() {
-		if err = rows.Scan(&category); err != nil {
-			return []string{}, err
+		if err = rows.Scan(&category.ID, &category.Name); err != nil {
+			return []entity.Category{}, err
 		}
 		categories = append(categories, category)
 	}
@@ -80,13 +81,13 @@ func (c categoryRepo) Update(ctx context.Context, id int, newName string) error 
 	return nil
 }
 
-func (c categoryRepo) Delete(ctx context.Context, name string) error {
+func (c categoryRepo) Delete(ctx context.Context, id int) error {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM categories WHERE name = $1`, name); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM categories WHERE id = $1`, id); err != nil {
 		return err
 	}
 
