@@ -19,7 +19,6 @@ import (
 	"eliborate/pkg/storage"
 	"eliborate/pkg/utils"
 	"fmt"
-	"net/http"
 
 	_ "eliborate/docs"
 
@@ -30,19 +29,6 @@ import (
 
 func main() {
 	server := gin.Default()
-
-	server.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
-	})
 
 	server.StaticFile("/docs", "./docs/swagger.json")
 	server.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -71,6 +57,9 @@ func main() {
 	// Init middleware
 	middleW := middleware.InitMiddleware(jwtUtil, logger)
 	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
+
+	// Use CORS middleware
+	server.Use(middleW.CorsMiddleware())
 
 	// Init Meilisearch client
 	search := storage.NewMeiliClient()
