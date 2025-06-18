@@ -2,6 +2,8 @@ services:
   api:
     container_name: lib_api
     build: .
+    volumes:
+      - ./configs/:/app/configs/
     ports:
       - "8080:8080"
     depends_on:

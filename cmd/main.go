@@ -40,7 +40,7 @@ func main() {
 	logger.InfoLogger.Info().Msg("Logger initialized successfully")
 
 	// Init cfg
-	config.InitConfig()
+	cfg := config.InitConfig()
 	logger.InfoLogger.Info().Msg("Config initialized successfully")
 
 	// Init db conn
@@ -55,7 +55,7 @@ func main() {
 	logger.InfoLogger.Info().Msg("JWT initialized successfully")
 
 	// Init middleware
-	middleW := middleware.InitMiddleware(jwtUtil, logger)
+	middleW := middleware.InitMiddleware(jwtUtil, logger, cfg)
 	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
 
 	// Use CORS middleware

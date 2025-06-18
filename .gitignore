@@ -4,6 +4,7 @@
 # config files
 .env
 test.env
+cors.config.toml
 
 # temporary files and directories ("dirty" files created at project start)
 tmp

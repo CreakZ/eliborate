@@ -14,9 +14,9 @@ const (
 
 func (m Middleware) CorsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set(AccessControlAllowOrigin, "http://localhost:5173")
-		c.Writer.Header().Set(AccessControlAllowMethods, "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set(AccessControlAllowHeaders, "Content-Type, Authorization")
+		c.Writer.Header().Set(AccessControlAllowOrigin, m.corsCfg.AccessControlAllowOrigin)
+		c.Writer.Header().Set(AccessControlAllowMethods, m.corsCfg.AccessControlAllowMethods)
+		c.Writer.Header().Set(AccessControlAllowHeaders, m.corsCfg.AccessControlAllowHeaders)
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
