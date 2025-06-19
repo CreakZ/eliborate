@@ -5,6 +5,8 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/errs"
 	"eliborate/internal/models/entity"
+	"eliborate/internal/repository/repoutils"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -84,11 +86,24 @@ func (b bookRepo) GetBookById(ctx context.Context, id int) (entity.Book, error) 
 	return book, nil
 }
 
-func (b bookRepo) GetBooks(ctx context.Context, offset, limit int) ([]entity.Book, error) {
-	query, args, err := qbuilder.
+func (b bookRepo) GetBooks(ctx context.Context, offset, limit int, rack *int, searchQuery *string) ([]entity.Book, error) {
+	if searchQuery != nil {
+		indices, err := b.getBooksIndicesByTextSearch(ctx, *searchQuery, offset, limit, rack)
+		if err != nil {
+			return []entity.Book{}, err
+		}
+		return b.getBooksByIndices(ctx, indices)
+	}
+
+	baseQuery := qbuilder.
 		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
 		From("books b").
-		Join("categories c ON b.category_id = c.id").
+		Join("categories c ON b.category_id = c.id")
+	if rack != nil {
+		baseQuery = baseQuery.Where(squirrel.Eq{"b.rack": rack})
+	}
+
+	query, args, err := baseQuery.
 		Limit(uint64(limit)).
 		Offset(uint64(offset)).
 		ToSql()
@@ -105,7 +120,16 @@ func (b bookRepo) GetBooks(ctx context.Context, offset, limit int) ([]entity.Boo
 	var books []entity.Book
 	for res.Next() {
 		var book entity.Book
-		if err := res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
+		if err := res.Scan(
+			&book.ID,
+			&book.Title,
+			&book.Description,
+			&book.Category,
+			&book.Authors,
+			&book.CoverUrls,
+			&book.Rack,
+			&book.Shelf,
+		); err != nil {
 			return []entity.Book{}, err
 		}
 		books = append(books, book)
@@ -122,49 +146,63 @@ func (b bookRepo) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return totalCount, nil
 }
 
-func (b bookRepo) GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]entity.Book, error) {
-	query, args, err := qbuilder.
-		Select("id", "title", "description", "category_id", "authors", "cover_urls", "rack", "shelf").
-		From("books").
-		Where(squirrel.Eq{"rack": rack}).
-		Offset(uint64(offset)).
-		Limit(uint64(limit)).
-		ToSql()
-	if err != nil {
-		return []entity.Book{}, err
+func (b bookRepo) getBooksIndicesByTextSearch(ctx context.Context, query string, offset, limit int, rack *int) ([]int, error) {
+	searchRequest := &meilisearch.SearchRequest{
+		Limit:  int64(limit),
+		Offset: int64(offset),
+	}
+	if rack != nil {
+		searchRequest.Filter = fmt.Sprintf("rack = %d", *rack)
 	}
 
-	res, err := b.db.QueryContext(ctx, query, args...)
+	searchResp, err := b.search.SearchWithContext(ctx, query, searchRequest)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Close()
+
+	return repoutils.ConvertMeiliHitsToIntSlice(searchResp.Hits), nil
+}
+
+func (b bookRepo) getBooksByIndices(ctx context.Context, indices []int) ([]entity.Book, error) {
+	if len(indices) == 0 {
+		return []entity.Book{}, nil
+	}
+
+	query, args, err := qbuilder.
+		Select("b.id", "b.title", "b.description", "c.name", "b.authors", "b.cover_urls", "b.rack", "b.shelf").
+		From("books b").
+		LeftJoin("categories c ON c.id = b.category_id").
+		Where(squirrel.Eq{"b.id": indices}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := b.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
 	var books []entity.Book
-	for res.Next() {
+	for rows.Next() {
 		var book entity.Book
-		if err := res.Scan(&book.ID, &book.Title, &book.Description, &book.Category, &book.Authors, &book.CoverUrls, &book.Rack, &book.Shelf); err != nil {
+		if err := rows.Scan(
+			&book.ID,
+			&book.Title,
+			&book.Description,
+			&book.Category,
+			&book.Authors,
+			&book.CoverUrls,
+			&book.Rack,
+			&book.Shelf,
+		); err != nil {
 			return nil, err
 		}
 		books = append(books, book)
 	}
 
 	return books, nil
-}
-
-func (b bookRepo) GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]entity.BookSearch, error) {
-	searchResp, err := b.search.Search(
-		text,
-		&meilisearch.SearchRequest{
-			AttributesToSearchOn: []string{"title", "authors", "description"},
-			Limit:                int64(limit),
-			Offset:               int64(offset),
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return convertors.BooksFromMeiliDocuments(searchResp.Hits), nil
 }
 
 func (b bookRepo) UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error {

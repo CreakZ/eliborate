@@ -42,11 +42,10 @@ func (c categoryRepo) GetAll(ctx context.Context) ([]entity.Category, error) {
 		return []entity.Category{}, err
 	}
 
-	var (
-		categories []entity.Category
-		category   entity.Category
-	)
+	var categories []entity.Category
+
 	for rows.Next() {
+		var category entity.Category
 		if err = rows.Scan(&category.ID, &category.Name); err != nil {
 			return []entity.Category{}, err
 		}
