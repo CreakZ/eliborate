@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"eliborate/internal/constants"
 	"eliborate/internal/convertors"
 	"eliborate/internal/delivery/responses"
-	"eliborate/internal/errs"
 	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
-	"eliborate/internal/validators"
 	"eliborate/pkg/storage"
 	"errors"
 	"net/http"
@@ -49,15 +48,9 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 		return
 	}
 
-	result := validators.ValidateBookCreate(&book)
-	if !result.Ok {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(result.Err.Error()))
-		return
-	}
-
 	bookDomain := convertors.DtoBookCreateToDomain(book)
 
-	_, err := b.service.CreateBook(context.Background(), bookDomain)
+	id, err := b.service.CreateBook(context.Background(), bookDomain)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
@@ -75,7 +68,7 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 		b.cache.Incr(constants.RedisTotalBooks)
 	}
 
-	c.JSON(http.StatusCreated, responses.NewSuccessMessageResponse())
+	c.JSON(http.StatusCreated, responses.NewBookCreateResponse(id))
 }
 
 // @Summary Get book by id
@@ -115,7 +108,7 @@ func (b bookHandlers) GetBookById(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param limit query int true "Books limit per page (10, 20, 50 or 100)"
 // @Param rack query int false "Rack number to filter books"
-// @Param text query string false "Full-text search query"
+// @Param search_query query string false "Full-text search query"
 // @Produce json
 // @Success 200 {object} responses.BookPaginationResponse
 // @Failure 400 {object} responses.MessageResponse
@@ -123,105 +116,59 @@ func (b bookHandlers) GetBookById(c *gin.Context) {
 // @Failure 500 {object} responses.MessageResponse
 // @Router /books [get]
 func (b bookHandlers) GetBooks(c *gin.Context) {
-	// should hide all the strategy inside service layer later
 	pageRaw := c.Query("page")
 	limitRaw := c.Query("limit")
-	text := c.Query("text")
-	rackRaw := c.Query("rack")
 
 	page, err := strconv.Atoi(pageRaw)
-	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'page' param"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("wrong 'page' param format"))
 		return
 	}
 
 	limit, err := strconv.Atoi(limitRaw)
-	if err != nil || !(limit == 10 || limit == 20 || limit == 50 || limit == 100) {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'limit' param (allowed: 10, 20, 50, 100)"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("wrong 'limit' param format"))
 		return
 	}
 
-	offset := (page - 1) * limit
-	ctx := c.Request.Context()
+	var (
+		rackPtr        *int
+		searchQueryPtr *string
+	)
 
-	if text != "" {
-		if err := validators.ValidateTextQuery(text); err != nil {
-			c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
-			return
-		}
-
-		books, err := b.service.GetBooksByTextSearch(ctx, text, offset, limit)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-			return
-		}
-
-		booksDto := convertors.DomainBooksSearchToDto(books)
-
-		c.JSON(http.StatusOK, responses.NewBookSearchResponse(booksDto))
-		return
+	query, ok := c.GetQuery("search_query")
+	if ok {
+		searchQueryPtr = &query
 	}
 
-	if rackRaw != "" {
+	rackRaw, ok := c.GetQuery("rack")
+	if ok {
 		rack, err := strconv.Atoi(rackRaw)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, responses.NewMessageResponse("invalid 'rack' param"))
+			c.JSON(http.StatusBadRequest, responses.NewMessageResponse("wrong 'rack' param format"))
 			return
 		}
-
-		books, err := b.service.GetBooksByRack(ctx, rack, offset, limit)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-			return
-		}
-
-		booksDto := convertors.DomainBooksToDto(books)
-
-		c.JSON(
-			http.StatusOK,
-			responses.NewBookPaginationResponse(booksDto).
-				WithPage(page).
-				WithLimit(limit).
-				WithRack(rack),
-		)
-		return
+		rackPtr = &rack
 	}
 
-	count, err := b.cache.GetInt(constants.RedisTotalBooks)
-	if errors.Is(err, redis.Nil) {
-		count, err = b.service.GetBooksTotalCount(ctx)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-			return
-		}
-		b.cache.SetInt(constants.RedisTotalBooks, count)
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-		return
-	}
-
-	if offset > count {
-		c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("'page' value too large"))
-		return
-	}
-
-	books, err := b.service.GetBooks(ctx, offset, limit)
+	books, err := b.service.GetBooks(c.Request.Context(), page, limit, rackPtr, searchQueryPtr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	totalPages := (count + limit - 1) / limit
+	response := responses.NewBookPaginationResponse(convertors.DomainBooksToDto(books)).
+		WithPage(page).
+		WithLimit(limit)
 
-	booksDto := convertors.DomainBooksToDto(books)
+	if rackPtr != nil {
+		response = response.WithRack(*rackPtr)
+	}
+	if searchQueryPtr != nil {
+		response = response.WithSearchQuery(*searchQueryPtr)
+	}
 
-	c.JSON(
-		http.StatusOK,
-		responses.NewBookPaginationResponse(booksDto).
-			WithPage(page).
-			WithTotalPages(totalPages).
-			WithLimit(limit),
-	)
+	c.JSON(http.StatusOK, response)
 }
 
 // @Summary Update book information
@@ -317,7 +264,7 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 func (b bookHandlers) DeleteBook(c *gin.Context) {
 	rawID := c.Param("id")
 	if rawID == "" {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no 'id' provided"))
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no 'id' param provided"))
 		return
 	}
 
@@ -327,14 +274,9 @@ func (b bookHandlers) DeleteBook(c *gin.Context) {
 		return
 	}
 
-	if id < 1 {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("id value is less than 1"))
-		return
-	}
-
 	if err = b.service.DeleteBook(c.Request.Context(), id); err != nil {
 		switch err {
-		case errs.ErrNoRowsAffected:
+		case sql.ErrNoRows:
 			c.JSON(http.StatusNotFound, responses.NewMessageResponse("book not found"))
 		default:
 			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))

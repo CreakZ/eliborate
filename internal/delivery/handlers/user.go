@@ -45,7 +45,7 @@ func (u userHandlers) Create(c *gin.Context) {
 
 	userCreateDomain := convertors.DtoUserCreateToDomain(userCreate)
 
-	_, err := u.service.Create(c.Request.Context(), userCreateDomain)
+	id, err := u.service.Create(c.Request.Context(), userCreateDomain)
 	if err != nil {
 		pqErr, ok := err.(*pq.Error)
 		if !ok {
@@ -61,7 +61,7 @@ func (u userHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, responses.NewSuccessMessageResponse())
+	c.JSON(http.StatusCreated, responses.NewBookCreateResponse(id))
 }
 
 // UpdatePassword godoc
@@ -70,8 +70,7 @@ func (u userHandlers) Create(c *gin.Context) {
 // @Tags user
 // @Accept json
 // @Produce json
-// @Param id body int true "User ID"
-// @Param password body string true "New password"
+// @Param password body dto.PasswordUpdate true "New password"
 // @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
