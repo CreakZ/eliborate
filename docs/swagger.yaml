@@ -193,12 +193,6 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Signed JWT
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "400":
           description: Bad Request
           schema:
@@ -266,7 +260,7 @@ paths:
         type: integer
       - description: Full-text search query
         in: query
-        name: text
+        name: search_query
         type: string
       produces:
       - application/json

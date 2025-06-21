@@ -106,15 +106,6 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Signed JWT",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -216,7 +207,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Full-text search query",
-                        "name": "text",
+                        "name": "search_query",
                         "in": "query"
                     }
                 ],
