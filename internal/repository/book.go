@@ -2,8 +2,7 @@ package repository
 
 import (
 	"context"
-	"eliborate/internal/convertors"
-	"eliborate/internal/errs"
+	"database/sql"
 	"eliborate/internal/models/entity"
 	"eliborate/internal/repository/repoutils"
 	"fmt"
@@ -49,7 +48,7 @@ func (b bookRepo) CreateBook(ctx context.Context, book entity.BookCreate) (int, 
 		return 0, err
 	}
 
-	bookSearch := convertors.EntityBookSearchFromEntityBookCreate(bookID, book)
+	bookSearch := repoutils.ConvertEntityBookSearchFromEntityBookCreate(bookID, book)
 
 	if _, err = b.search.AddDocumentsWithContext(ctx, []entity.BookSearch{bookSearch}); err != nil {
 		tx.Rollback()
@@ -100,7 +99,7 @@ func (b bookRepo) GetBooks(ctx context.Context, offset, limit int, rack *int, se
 		From("books b").
 		Join("categories c ON b.category_id = c.id")
 	if rack != nil {
-		baseQuery = baseQuery.Where(squirrel.Eq{"b.rack": rack})
+		baseQuery = baseQuery.Where(squirrel.Eq{"b.rack": *rack})
 	}
 
 	query, args, err := baseQuery.
@@ -281,7 +280,7 @@ func (b bookRepo) DeleteBook(ctx context.Context, id int) error {
 
 	if affected, _ := res.RowsAffected(); affected == 0 {
 		tx.Rollback()
-		return errs.ErrNoRowsAffected
+		return sql.ErrNoRows
 	}
 
 	if err = tx.Commit(); err != nil {

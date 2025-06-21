@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"eliborate/internal/errs"
+	"database/sql"
 	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -69,7 +69,7 @@ func (c categoryRepo) Update(ctx context.Context, id int, newName string) error 
 
 	if affected, _ := res.RowsAffected(); affected == 0 {
 		tx.Rollback()
-		return errs.ErrNoRowsAffected
+		return sql.ErrNoRows
 	}
 
 	if err := tx.Commit(); err != nil {
