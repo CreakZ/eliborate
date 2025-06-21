@@ -80,24 +80,6 @@ func DomainAdminUserToDto(user domain.AdminUser) dto.AdminUser {
 	}
 }
 
-func DomainBookSearchToDto(book domain.BookSearch) dto.BookSearch {
-	return dto.BookSearch{
-		ID:          book.ID,
-		Title:       book.Title,
-		Authors:     book.Authors,
-		Description: book.Description,
-		Category:    book.Category,
-	}
-}
-
-func DomainBooksSearchToDto(books []domain.BookSearch) []dto.BookSearch {
-	booksDto := make([]dto.BookSearch, 0, len(books))
-	for _, book := range books {
-		booksDto = append(booksDto, DomainBookSearchToDto(book))
-	}
-	return booksDto
-}
-
 func DomainCategoryToDto(category domain.Category) dto.Category {
 	return dto.Category{
 		ID:   category.ID,

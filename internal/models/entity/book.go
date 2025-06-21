@@ -39,9 +39,10 @@ type UpdateBookInfo struct {
 }
 
 type BookSearch struct {
-	ID          int      `json:"id" search:"id"`
-	Title       string   `json:"title" search:"title"`
-	Authors     []string `json:"authors" search:"authors"`
-	Description string   `json:"description" search:"description"`
-	Category    string   `json:"category" search:"category"`
+	ID          int      `json:"id"`
+	Title       string   `json:"title"`
+	Authors     []string `json:"authors"`
+	Description string   `json:"description"`
+	CategoryID  int      `json:"categoryId"`
+	Rack        int      `json:"rack"`
 }

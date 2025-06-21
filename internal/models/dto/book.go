@@ -32,11 +32,3 @@ type UpdateBookInfo struct {
 	CategoryID  int      `json:"category_id"`
 	CoverUrls   []string `json:"cover_urls"`
 }
-
-type BookSearch struct {
-	ID          int      `json:"id"`
-	Title       string   `json:"title"`
-	Authors     []string `json:"authors"`
-	Description string   `json:"description"`
-	Category    string   `json:"category"`
-}

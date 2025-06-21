@@ -74,16 +74,6 @@ func DomainAdminUser(user domain.AdminUser) entity.AdminUser {
 	}
 }
 
-func DomainBookSearchToEntity(book domain.BookSearch) entity.BookSearch {
-	return entity.BookSearch{
-		ID:          book.ID,
-		Title:       book.Title,
-		Authors:     book.Authors,
-		Description: book.Description,
-		Category:    book.Category,
-	}
-}
-
 func UpdateBookInfoToMap(book domain.UpdateBookInfo) map[string]any {
 	values := make(map[string]any, 1)
 

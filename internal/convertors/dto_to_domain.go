@@ -72,16 +72,6 @@ func DtoAdminUserToDomain(user dto.AdminUser) domain.AdminUser {
 	}
 }
 
-func DtoBookSearchToDomain(book dto.BookSearch) domain.BookSearch {
-	return domain.BookSearch{
-		ID:          book.ID,
-		Title:       book.Title,
-		Authors:     book.Authors,
-		Description: book.Description,
-		Category:    book.Category,
-	}
-}
-
 func DtoUpdateBookInfoToDomain(updateBook dto.UpdateBookInfo) domain.UpdateBookInfo {
 	return domain.UpdateBookInfo{
 		Title:       updateBook.Title,

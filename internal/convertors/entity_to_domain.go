@@ -76,16 +76,6 @@ func EntityAdminUserToDomain(user entity.AdminUser) domain.AdminUser {
 	}
 }
 
-func EntityBookSearchToDomain(book entity.BookSearch) domain.BookSearch {
-	return domain.BookSearch{
-		ID:          book.ID,
-		Title:       book.Title,
-		Authors:     book.Authors,
-		Description: book.Description,
-		Category:    book.Category,
-	}
-}
-
 func EntityCategoryToDomain(category entity.Category) domain.Category {
 	return domain.Category{
 		ID:   category.ID,
