@@ -37,11 +37,20 @@ func NewMeiliClient() meilisearch.IndexManager {
 		PrimaryKey: "id",
 	})
 	if err != nil {
-		panic(fmt.Sprintf("failed to create index '%s': %s", MeiliBookIndex, err.Error()))
+		panic(fmt.Errorf("meilisearch: failed to create index '%s': %w", MeiliBookIndex, err))
+	}
+
+	_, err = client.Index(MeiliBookIndex).UpdateFilterableAttributes(&[]string{"rack"})
+	if err != nil {
+		panic(fmt.Errorf(
+			"meilisearch: failed to update 'rack' filterable '%s': %w",
+			MeiliBookIndex,
+			err,
+		))
 	}
 
 	if !client.IsHealthy() {
-		panic("meilisearch server is unhealthy")
+		panic("meilisearch: server is unhealthy")
 	}
 
 	return client.Index(MeiliBookIndex)
