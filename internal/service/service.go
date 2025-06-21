@@ -9,10 +9,10 @@ type BookService interface {
 	CreateBook(ctx context.Context, book domain.BookCreate) (int, error)
 
 	GetBookById(ctx context.Context, id int) (domain.Book, error)
-	GetBooks(ctx context.Context, offset, limit int) ([]domain.Book, error)
+	GetBooks(ctx context.Context, page, limit int, rack *int, searchQuery *string) ([]domain.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
-	GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]domain.Book, error)
-	GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]domain.BookSearch, error)
+	// GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]domain.Book, error)
+	// GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]domain.BookSearch, error)
 
 	UpdateBookInfo(ctx context.Context, id int, book domain.UpdateBookInfo) error
 	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error

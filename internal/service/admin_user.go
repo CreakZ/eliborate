@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"eliborate/internal/repository"
-	"eliborate/internal/validators"
+	"eliborate/internal/service/servutils/validation"
 	"eliborate/pkg/logging"
 	"fmt"
 
@@ -23,8 +23,11 @@ func InitAdminUserService(repo repository.AdminUserRepo, logger *logging.Log) Ad
 }
 
 func (u adminUserService) UpdatePassword(ctx context.Context, id int, password string) error {
-	if validErr := validators.IsPasswordValid(password); validErr != nil {
-		return validErr
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+	if err := validation.ValidatePassword(password); err != nil {
+		return err
 	}
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

@@ -5,6 +5,8 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
+	"eliborate/internal/service/servutils"
+	"eliborate/internal/service/servutils/validation"
 	"eliborate/pkg/logging"
 	"fmt"
 )
@@ -24,6 +26,11 @@ func InitBookService(repo repository.BookRepo, log *logging.Log) BookService {
 }
 
 func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
+	err := validation.ValidateBookCreate(book)
+	if err != nil {
+		return 0, err
+	}
+
 	bookEntity := convertors.DomainBookCreateToEntity(book)
 
 	bookID, err := b.repo.CreateBook(ctx, bookEntity)
@@ -36,15 +43,35 @@ func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (in
 }
 
 func (b bookService) GetBookById(ctx context.Context, id int) (domain.Book, error) {
+	if err := validation.ValidateID(id); err != nil {
+		return domain.Book{}, err
+	}
+
 	book, err := b.repo.GetBookById(ctx, id)
 	if err != nil {
 		return domain.Book{}, err
 	}
+
 	return convertors.EntityBookToDomain(book), nil
 }
 
-func (b bookService) GetBooks(ctx context.Context, offset, limit int) ([]domain.Book, error) {
-	booksRaw, err := b.repo.GetBooks(ctx, offset, limit)
+func (b bookService) GetBooks(ctx context.Context, page, limit int, rack *int, searchQuery *string) ([]domain.Book, error) {
+	if err := validation.ValidatePage(page); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateLimit(limit); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateRackPtr(rack); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateSearchQueryPtr(searchQuery); err != nil {
+		return []domain.Book{}, err
+	}
+
+	offset := servutils.CountOffset(page, limit)
+
+	booksRaw, err := b.repo.GetBooks(ctx, offset, limit, rack, searchQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -64,35 +91,11 @@ func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (b bookService) GetBooksByRack(ctx context.Context, rack, offset, limit int) ([]domain.Book, error) {
-	booksRaw, err := b.repo.GetBooksByRack(ctx, rack, offset, limit)
-	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get books by rack failed: %v", err))
-		return nil, err
-	}
-
-	books := make([]domain.Book, len(booksRaw))
-	for i := range booksRaw {
-		books[i] = convertors.EntityBookToDomain(booksRaw[i])
-	}
-	return books, nil
-}
-
-func (b bookService) GetBooksByTextSearch(ctx context.Context, text string, offset, limit int) ([]domain.BookSearch, error) {
-	booksDomain, err := b.repo.GetBooksByTextSearch(ctx, text, offset, limit)
-	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get books by fulltext search failed: %v", err))
-		return nil, err
-	}
-
-	books := make([]domain.BookSearch, len(booksDomain))
-	for i := range booksDomain {
-		books[i] = convertors.EntityBookSearchToDomain(booksDomain[i])
-	}
-	return books, nil
-}
-
 func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.UpdateBookInfo) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	bookConv := convertors.UpdateBookInfoToMap(book)
 
 	if err := b.repo.UpdateBookInfo(ctx, id, bookConv); err != nil {
@@ -103,6 +106,10 @@ func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.Upd
 }
 
 func (b bookService) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	if err := b.repo.UpdateBookPlacement(ctx, id, rack, shelf); err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book placement %v", err.Error()))
 		return err
@@ -111,9 +118,14 @@ func (b bookService) UpdateBookPlacement(ctx context.Context, id, rack, shelf in
 }
 
 func (b bookService) DeleteBook(ctx context.Context, id int) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	if err := b.repo.DeleteBook(ctx, id); err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("delete book %v", err.Error()))
 		return err
 	}
+
 	return nil
 }

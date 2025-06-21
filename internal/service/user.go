@@ -5,7 +5,7 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
-	"eliborate/internal/validators"
+	"eliborate/internal/service/servutils/validation"
 	"fmt"
 
 	"eliborate/pkg/logging"
@@ -26,10 +26,14 @@ func InitUserService(repo repository.UserRepo, logger *logging.Log) UserService 
 }
 
 func (u userService) Create(ctx context.Context, user domain.UserCreate) (int, error) {
+	if err := validation.ValidateUserCreate(user); err != nil {
+		return 0, err
+	}
+
 	userEntity := convertors.DomainUserCreateToEntity(user)
 
-	if validErr := validators.IsPasswordValid(user.Password); validErr != nil {
-		return 0, validErr
+	if err := validation.ValidatePassword(user.Password); err != nil {
+		return 0, err
 	}
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userEntity.Password), bcrypt.DefaultCost)
@@ -49,8 +53,11 @@ func (u userService) Create(ctx context.Context, user domain.UserCreate) (int, e
 }
 
 func (u userService) UpdatePassword(ctx context.Context, id int, password string) error {
-	if validErr := validators.IsPasswordValid(password); validErr != nil {
-		return validErr
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+	if err := validation.ValidatePassword(password); err != nil {
+		return err
 	}
 
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -67,6 +74,10 @@ func (u userService) UpdatePassword(ctx context.Context, id int, password string
 }
 
 func (u userService) Delete(ctx context.Context, id int) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	if err := u.repo.Delete(ctx, id); err != nil {
 		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("user delete error '%s'", err.Error()))
 		return err
