@@ -1,6 +1,7 @@
 package convertors
 
 import (
+	"database/sql"
 	domain "eliborate/internal/models/domain"
 	"eliborate/internal/models/entity"
 
@@ -39,9 +40,15 @@ func DomainBookCreateToEntity(book domain.BookCreate) entity.BookCreate {
 }
 
 func DomainBookToEntity(book domain.Book) entity.Book {
+	var category sql.NullString
+	if book.Category == "" {
+		category.String = book.Category
+		category.Valid = true
+	}
 	return entity.Book{
 		ID:            book.ID,
 		BookInfo:      DomainBookInfoToEntity(book.BookInfo),
+		Category:      category,
 		BookPlacement: DomainBookPlacementToEntity(book.BookPlacement),
 	}
 }

@@ -31,6 +31,7 @@ func DomainBookPlacementToDto(book domain.BookPlacement) dto.BookPlacement {
 func DomainBookCreateToDto(book domain.BookCreate) dto.BookCreate {
 	return dto.BookCreate{
 		BookInfo:      DomainBookInfoToDto(book.BookInfo),
+		CategoryID:    book.CategoryID,
 		BookPlacement: DomainBookPlacementToDto(book.BookPlacement),
 	}
 }

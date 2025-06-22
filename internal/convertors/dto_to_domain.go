@@ -40,6 +40,7 @@ func DtoBookToDomain(book dto.Book) domain.Book {
 	return domain.Book{
 		ID:            book.ID,
 		BookInfo:      DtoBookInfoToDomain(book.BookInfo),
+		Category:      book.Category,
 		BookPlacement: DtoBookPlacementToDomain(book.BookPlacement),
 	}
 }
