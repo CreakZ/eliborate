@@ -25,8 +25,6 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_PORT}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./internal/database/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -44,8 +42,6 @@ services:
       - ./configs/.env
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    ports:
-      - "${REDIS_PORT}:6379"
 
   meilisearch:
     container_name: lib_search
@@ -54,8 +50,6 @@ services:
       - ./configs/.env
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-    ports:
-      - "${MEILI_PORT}:7700"
     volumes:
       - mdb_data:/meili_data/data.ms/
     healthcheck:
