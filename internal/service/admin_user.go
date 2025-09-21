@@ -4,21 +4,17 @@ import (
 	"context"
 	"eliborate/internal/repository"
 	"eliborate/internal/service/validation"
-	"eliborate/pkg/logging"
-	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type adminUserService struct {
-	repo   repository.AdminUserRepo
-	logger *logging.Log
+	repo repository.AdminUserRepo
 }
 
-func InitAdminUserService(repo repository.AdminUserRepo, logger *logging.Log) AdminUserService {
+func InitAdminUserService(repo repository.AdminUserRepo) AdminUserService {
 	return adminUserService{
-		repo:   repo,
-		logger: logger,
+		repo: repo,
 	}
 }
 
@@ -36,7 +32,6 @@ func (u adminUserService) UpdatePassword(ctx context.Context, id int, password s
 	}
 
 	if err := u.repo.UpdatePassword(ctx, id, string(hashedPass)); err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("admin user update error '%s'", err.Error()))
 		return err
 	}
 

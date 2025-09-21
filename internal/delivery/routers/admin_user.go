@@ -5,15 +5,14 @@ import (
 	"eliborate/internal/delivery/middleware"
 	"eliborate/internal/repository"
 	"eliborate/internal/service"
-	"eliborate/pkg/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitAdminUsersRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware, logger *logging.Log) {
+func InitAdminUsersRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware) {
 	adminRepo := repository.InitAdminUserRepo(db)
-	adminService := service.InitAdminUserService(adminRepo, logger)
+	adminService := service.InitAdminUserService(adminRepo)
 	adminHandlers := handlers.InitAdminUserHandlers(adminService)
 
 	group.PATCH("", middleware.BearerAuthMiddleware(), adminHandlers.UpdatePassword)

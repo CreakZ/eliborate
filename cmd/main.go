@@ -18,7 +18,6 @@ import (
 	"eliborate/pkg/logging"
 	"eliborate/pkg/storage"
 	"eliborate/pkg/utils"
-	"fmt"
 
 	_ "eliborate/docs"
 
@@ -35,14 +34,11 @@ func main() {
 	server.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Init logger
-	logger, infoFile, errorFile := logging.InitLogger()
-	defer infoFile.Close()
-	defer errorFile.Close()
-	logger.InfoLogger.Info().Msg("Logger initialized successfully")
+	logger := logging.NewZerologLogger()
 
 	// Init env configuration
 	config.InitConfig()
-	logger.InfoLogger.Info().Msg("Config initialized successfully")
+	logger.Info().Msg("Config initialized successfully")
 
 	// Init cors configuration
 	corsCfg := config.NewCorsConfig(
@@ -60,20 +56,21 @@ func main() {
 		viper.GetInt(config.PostgresPort),
 	)
 	if err != nil {
-		panic(err)
+		logger.Fatal().Err(err).Msg("Failed to connect to db")
 	}
-	logger.InfoLogger.Info().Msg("Postgres initialized successfully")
+	logger.Info().Msg("Postgres client initialized successfully")
 
 	// Init redis client
 	cache := storage.NewRedisCacheManager()
+	logger.Info().Msg("Redis client initialized successfully")
 
 	// Init jwt utils
 	jwtUtil := utils.InitJWTUtil()
-	logger.InfoLogger.Info().Msg("JWT initialized successfully")
+	logger.Info().Msg("JWT initialized successfully")
 
 	// Init middleware
-	middleW := middleware.InitMiddleware(jwtUtil, logger, corsCfg)
-	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
+	middleW := middleware.InitMiddleware(jwtUtil, corsCfg)
+	logger.Info().Msg("Middleware initialized successfully")
 
 	// Use CORS middleware
 	server.Use(middleW.CorsMiddleware())
@@ -86,15 +83,15 @@ func main() {
 		viper.GetString(config.MeiliMasterKey),
 	)
 	if err != nil {
-		panic(err)
+		logger.Fatal().Err(err).Msg("Failed to connect to meilisearch")
 	}
-	logger.InfoLogger.Info().Msg("Search engine initialized successfully")
+	logger.Info().Msg("Search engine initialized successfully")
 
 	// Init routing
-	routers.InitRouting(server, db, cache, logger, jwtUtil, middleW, search)
+	routers.InitRouting(server, db, cache, jwtUtil, middleW, search)
 
 	// Server startup
 	if err := server.Run(":8080"); err != nil {
-		panic(fmt.Errorf("server run error: %s", err))
+		logger.Fatal().Err(err).Msg("Error while running HTTP server")
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"eliborate/internal/delivery/middleware"
 	"eliborate/internal/repository"
 	"eliborate/internal/service"
-	"eliborate/pkg/logging"
 	"eliborate/pkg/storage"
 
 	"github.com/gin-gonic/gin"
@@ -17,12 +16,11 @@ func InitBooksRouter(
 	rg *gin.RouterGroup,
 	db *sqlx.DB,
 	cache *storage.RedisCache,
-	log *logging.Log,
 	middleware middleware.Middleware,
 	search meilisearch.IndexManager,
 ) {
 	bookRepo := repository.InitBookRepo(db, search)
-	bookService := service.InitBookService(bookRepo, log)
+	bookService := service.InitBookService(bookRepo)
 	bookHandlers := handlers.InitBookHandlers(bookService, cache)
 
 	rg.POST("", middleware.BearerAuthMiddleware(), bookHandlers.CreateBook)

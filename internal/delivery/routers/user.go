@@ -5,15 +5,14 @@ import (
 	"eliborate/internal/delivery/middleware"
 	"eliborate/internal/repository"
 	"eliborate/internal/service"
-	"eliborate/pkg/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitUserRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware, logger *logging.Log) {
+func InitUserRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware) {
 	userRepo := repository.InitUserRepo(db)
-	userService := service.InitUserService(userRepo, logger)
+	userService := service.InitUserService(userRepo)
 	userHandlers := handlers.InitUserHandlers(userService)
 
 	group.POST("", userHandlers.Create)

@@ -5,18 +5,15 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
-	"eliborate/pkg/logging"
 )
 
 type publicService struct {
-	repo   repository.PublicRepo
-	logger *logging.Log
+	repo repository.PublicRepo
 }
 
-func InitPublicService(repo repository.PublicRepo, logger *logging.Log) PublicService {
+func InitPublicService(repo repository.PublicRepo) PublicService {
 	return publicService{
-		repo:   repo,
-		logger: logger,
+		repo: repo,
 	}
 }
 

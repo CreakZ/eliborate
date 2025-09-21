@@ -2,7 +2,6 @@ package routers
 
 import (
 	"eliborate/internal/delivery/middleware"
-	"eliborate/pkg/logging"
 	"eliborate/pkg/storage"
 	"eliborate/pkg/utils"
 
@@ -15,7 +14,6 @@ func InitRouting(
 	engine *gin.Engine,
 	db *sqlx.DB,
 	cache *storage.RedisCache,
-	logger *logging.Log,
 	jwt utils.JWT,
 	middleware middleware.Middleware,
 	search meilisearch.IndexManager,
@@ -26,9 +24,9 @@ func InitRouting(
 	adminUserRG := engine.Group("/admins")
 	catRG := engine.Group("/categories")
 
-	InitBooksRouter(booksRG, db, cache, logger, middleware, search)
-	InitPublicRouter(publicRG, db, logger, jwt)
-	InitUserRouter(userRG, db, middleware, logger)
-	InitAdminUsersRouter(adminUserRG, db, middleware, logger)
-	InitCategoryRouter(catRG, db, middleware, logger)
+	InitBooksRouter(booksRG, db, cache, middleware, search)
+	InitPublicRouter(publicRG, db, jwt)
+	InitUserRouter(userRG, db, middleware)
+	InitAdminUsersRouter(adminUserRG, db, middleware)
+	InitCategoryRouter(catRG, db, middleware)
 }

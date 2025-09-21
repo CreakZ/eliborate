@@ -7,21 +7,16 @@ import (
 	"eliborate/internal/repository"
 	"eliborate/internal/service/servutils"
 	"eliborate/internal/service/validation"
-	"eliborate/pkg/logging"
 	"fmt"
 )
 
-var ErrWrongCategory = fmt.Errorf("wrong category name")
-
 type bookService struct {
 	repo repository.BookRepo
-	log  *logging.Log
 }
 
-func InitBookService(repo repository.BookRepo, log *logging.Log) BookService {
+func InitBookService(repo repository.BookRepo) BookService {
 	return bookService{
 		repo: repo,
-		log:  log,
 	}
 }
 
@@ -35,7 +30,6 @@ func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (in
 
 	bookID, err := b.repo.CreateBook(ctx, bookEntity)
 	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("create book %v", err.Error()))
 		return 0, err
 	}
 
@@ -102,7 +96,6 @@ func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.Upd
 	updates := convertors.DomainUpdateBookInfoToEntity(book)
 
 	if err := b.repo.UpdateBookInfo(ctx, id, updates); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book info %v", err.Error()))
 		return err
 	}
 	return nil
@@ -122,7 +115,6 @@ func (b bookService) UpdateBookPlacement(ctx context.Context, id int, book domai
 	updates := convertors.DomainUpdateBookPlacementToEntity(book)
 
 	if err := b.repo.UpdateBookPlacement(ctx, id, updates); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book placement %v", err.Error()))
 		return err
 	}
 	return nil
@@ -134,7 +126,6 @@ func (b bookService) DeleteBook(ctx context.Context, id int) error {
 	}
 
 	if err := b.repo.DeleteBook(ctx, id); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("delete book %v", err.Error()))
 		return err
 	}
 

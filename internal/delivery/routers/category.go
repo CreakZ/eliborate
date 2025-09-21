@@ -5,13 +5,12 @@ import (
 	"eliborate/internal/delivery/middleware"
 	"eliborate/internal/repository"
 	"eliborate/internal/service"
-	"eliborate/pkg/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitCategoryRouter(rg *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware, logger *logging.Log) {
+func InitCategoryRouter(rg *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware) {
 	catRepo := repository.InitCategoryRepo(db)
 	catService := service.NewCategoryService(catRepo)
 	catHandlers := handlers.NewCategoryHandlers(catService)
