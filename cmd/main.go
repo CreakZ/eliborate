@@ -23,6 +23,7 @@ import (
 	_ "eliborate/docs"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -39,12 +40,28 @@ func main() {
 	defer errorFile.Close()
 	logger.InfoLogger.Info().Msg("Logger initialized successfully")
 
-	// Init cfg
-	cfg := config.InitConfig()
+	// Init env configuration
+	config.InitConfig()
 	logger.InfoLogger.Info().Msg("Config initialized successfully")
 
+	// Init cors configuration
+	corsCfg := config.NewCorsConfig(
+		viper.GetString(config.AccessControlAllowOrigin),
+		viper.GetString(config.AccessControlAllowMethods),
+		viper.GetString(config.AccessControlAllowHeaders),
+	)
+
 	// Init db conn
-	db := storage.NewPostgresConn()
+	db, err := storage.NewPostgresConn(
+		viper.GetString(config.PostgresUser),
+		viper.GetString(config.PostgresPassword),
+		viper.GetString(config.PostgresDBName),
+		viper.GetString(config.PostgresHost),
+		viper.GetInt(config.PostgresPort),
+	)
+	if err != nil {
+		panic(err)
+	}
 	logger.InfoLogger.Info().Msg("Postgres initialized successfully")
 
 	// Init redis client
@@ -55,14 +72,22 @@ func main() {
 	logger.InfoLogger.Info().Msg("JWT initialized successfully")
 
 	// Init middleware
-	middleW := middleware.InitMiddleware(jwtUtil, logger, cfg)
+	middleW := middleware.InitMiddleware(jwtUtil, logger, corsCfg)
 	logger.InfoLogger.Info().Msg("Middleware initialized successfully")
 
 	// Use CORS middleware
 	server.Use(middleW.CorsMiddleware())
 
 	// Init Meilisearch client
-	search := storage.NewMeiliClient()
+	search, err := storage.NewMeiliClient(
+		viper.GetString(config.MeiliHost),
+		viper.GetInt(config.MeiliPort),
+		viper.GetString(config.MeiliIndex),
+		viper.GetString(config.MeiliMasterKey),
+	)
+	if err != nil {
+		panic(err)
+	}
 	logger.InfoLogger.Info().Msg("Search engine initialized successfully")
 
 	// Init routing

@@ -1,23 +1,29 @@
 package storage
 
 import (
-	"eliborate/pkg/config"
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
 )
 
-func NewPostgresConn() *sqlx.DB {
+func NewPostgresConn(user, password, dbname, host string, port int) (*sqlx.DB, error) {
 	connString := fmt.Sprintf("user=%v password=%v host=%v port=%v dbname=%v sslmode=disable",
-		viper.GetString(config.PostgresUser),
-		viper.GetString(config.PostgresPassword),
-		viper.GetString(config.PostgresHost),
-		viper.GetInt(config.PostgresPort),
-		viper.GetString(config.PostgresDBName))
+		user,
+		password,
+		host,
+		port,
+		dbname,
+	)
 
-	db := sqlx.MustConnect("postgres", connString)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	return db
+	db, err := sqlx.ConnectContext(ctx, "postgres", connString)
+	if err != nil {
+		return &sqlx.DB{}, fmt.Errorf("failed to connect to db: %w", err)
+	}
+	return db, nil
 }

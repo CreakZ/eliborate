@@ -2,56 +2,49 @@ package storage
 
 import (
 	"context"
-	"eliborate/pkg/config"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/meilisearch/meilisearch-go"
-	"github.com/spf13/viper"
 )
 
-const MeiliBookIndex = "book_docs"
-
-func NewMeiliClient() meilisearch.IndexManager {
-	addr := fmt.Sprintf(
-		"http://%s:%d",
-		viper.GetString(config.MeiliHost),
-		viper.GetInt(config.MeiliPort),
-	)
+func NewMeiliClient(host string, port int, indexName, masterKey string) (meilisearch.IndexManager, error) {
+	addr := fmt.Sprintf("http://%s:%d", host, port)
 
 	client := meilisearch.New(
 		addr,
-		meilisearch.WithAPIKey(viper.GetString(config.MeiliMasterKey)),
+		meilisearch.WithAPIKey(masterKey),
 		meilisearch.WithCustomRetries(
 			[]int{http.StatusUnauthorized},
 			3,
 		),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(3*time.Second))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := client.CreateIndexWithContext(ctx, &meilisearch.IndexConfig{
-		Uid:        MeiliBookIndex,
+		Uid:        indexName,
 		PrimaryKey: "id",
 	})
 	if err != nil {
-		panic(fmt.Errorf("meilisearch: failed to create index '%s': %w", MeiliBookIndex, err))
+		return meilisearch.IndexResult{}, fmt.Errorf("failed to create meilisearch index '%s': %w", indexName, err)
 	}
 
-	_, err = client.Index(MeiliBookIndex).UpdateFilterableAttributes(&[]string{"rack"})
+	_, err = client.Index(indexName).UpdateFilterableAttributes(&[]string{"rack"})
 	if err != nil {
-		panic(fmt.Errorf(
-			"meilisearch: failed to update 'rack' filterable '%s': %w",
-			MeiliBookIndex,
+		return meilisearch.IndexResult{}, fmt.Errorf(
+			"failed to update meilisearch 'rack' filterable '%s': %w",
+			indexName,
 			err,
-		))
+		)
 	}
 
 	if !client.IsHealthy() {
-		panic("meilisearch: server is unhealthy")
+		return meilisearch.IndexResult{}, errors.New("meilisearch service is unhealthy")
 	}
 
-	return client.Index(MeiliBookIndex)
+	return client.Index(indexName), nil
 }
