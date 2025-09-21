@@ -12,8 +12,8 @@ type BookRepo interface {
 	GetBooks(ctx context.Context, offset, limit int, rack *int, searchQuery *string) ([]entity.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
 
-	UpdateBookInfo(ctx context.Context, id int, fields map[string]interface{}) error
-	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error
+	UpdateBookInfo(ctx context.Context, id int, updates entity.UpdateBookInfo) error
+	UpdateBookPlacement(ctx context.Context, id int, updates entity.UpdateBookPlacement) error
 
 	DeleteBook(ctx context.Context, id int) error
 }

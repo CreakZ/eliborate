@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"database/sql"
+	"eliborate/internal/errs"
 	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -19,21 +19,8 @@ func InitCategoryRepo(db *sqlx.DB) CategoryRepo {
 }
 
 func (c categoryRepo) Create(ctx context.Context, categoryName string) error {
-	tx, err := c.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	if _, err = tx.ExecContext(ctx, `INSERT INTO categories name VALUES $1`); err != nil {
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return nil
+	_, err := c.db.ExecContext(ctx, `INSERT INTO categories name VALUES $1`)
+	return err
 }
 
 func (c categoryRepo) GetAll(ctx context.Context) ([]entity.Category, error) {
@@ -56,44 +43,23 @@ func (c categoryRepo) GetAll(ctx context.Context) ([]entity.Category, error) {
 }
 
 func (c categoryRepo) Update(ctx context.Context, id int, newName string) error {
-	tx, err := c.db.BeginTx(ctx, nil)
+	res, err := c.db.ExecContext(ctx, `UPDATE categories SET name = $1 WHERE id = $2`, newName, id)
 	if err != nil {
 		return err
 	}
-
-	res, err := tx.ExecContext(ctx, `UPDATE categories SET name = $1 WHERE id = $2`, newName, id)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	if affected, _ := res.RowsAffected(); affected == 0 {
-		tx.Rollback()
-		return sql.ErrNoRows
+		return errs.ErrEntityNotFound
 	}
-
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	return nil
 }
 
 func (c categoryRepo) Delete(ctx context.Context, id int) error {
-	tx, err := c.db.BeginTx(ctx, nil)
+	res, err := c.db.ExecContext(ctx, `DELETE FROM categories WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM categories WHERE id = $1`, id); err != nil {
-		return err
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return errs.ErrEntityNotFound
 	}
-
-	if err = tx.Commit(); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	return nil
 }

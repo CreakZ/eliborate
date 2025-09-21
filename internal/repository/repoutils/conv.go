@@ -2,6 +2,9 @@ package repoutils
 
 import (
 	"eliborate/internal/models/entity"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 )
 
 func ConvertMeiliHitsToIntSlice(hits []any) []int {
@@ -53,4 +56,39 @@ func ConvertEntityBookSearchFromEntityBookCreate(bookId int, book entity.BookCre
 		CategoryID:  book.CategoryID,
 		Rack:        book.Rack,
 	}
+}
+
+func ConvertUpdateBookInfoToSetMap(updates entity.UpdateBookInfo) squirrel.Eq {
+	setMap := make(squirrel.Eq)
+
+	if updates.Title != nil {
+		setMap["title"] = *updates.Title
+	}
+	if updates.Description != nil {
+		setMap["description"] = *updates.Description
+	}
+	if updates.CategoryID != nil {
+		setMap["category_id"] = *updates.CategoryID
+	}
+	if updates.Authors != nil {
+		setMap["authors"] = pq.StringArray(updates.Authors)
+	}
+	if updates.CoverUrls != nil {
+		setMap["cover_urls"] = pq.StringArray(updates.CoverUrls)
+	}
+
+	return setMap
+}
+
+func ConvertUpdateBookPlacementToSetMap(updates entity.UpdateBookPlacement) squirrel.Eq {
+	setMap := make(squirrel.Eq)
+
+	if updates.Rack != nil {
+		setMap["rack"] = *updates.Rack
+	}
+	if updates.Shelf != nil {
+		setMap["shelf"] = *updates.Shelf
+	}
+
+	return setMap
 }

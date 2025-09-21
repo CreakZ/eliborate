@@ -28,6 +28,10 @@ type UpdateBookInfo struct {
 	Title       *string
 	Authors     []string
 	Description *string
-	CategoryID  int
+	CategoryID  *int
 	CoverUrls   []string
+}
+
+type UpdateBookPlacement struct {
+	Rack, Shelf *int
 }

@@ -29,6 +29,11 @@ type UpdateBookInfo struct {
 	Title       *string  `json:"title"`
 	Authors     []string `json:"authors"`
 	Description *string  `json:"description"`
-	CategoryID  int      `json:"category_id"`
+	CategoryID  *int     `json:"category_id"`
 	CoverUrls   []string `json:"cover_urls"`
+}
+
+type UpdateBookPlacement struct {
+	Rack  *int `json:"rack"`
+	Shelf *int `json:"shelf"`
 }

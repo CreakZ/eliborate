@@ -31,11 +31,15 @@ type Book struct {
 }
 
 type UpdateBookInfo struct {
-	Title       sql.NullString
-	Authors     pq.StringArray
-	Description sql.NullString
-	Category    sql.NullString
-	CoverUrls   pq.StringArray
+	Title       *string
+	Authors     []string
+	Description *string
+	CategoryID  *int
+	CoverUrls   []string
+}
+
+type UpdateBookPlacement struct {
+	Rack, Shelf *int
 }
 
 type BookSearch struct {
