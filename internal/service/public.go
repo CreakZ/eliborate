@@ -2,27 +2,33 @@ package service
 
 import (
 	"context"
-	"yurii-lib/internal/repository"
-	"yurii-lib/pkg/lgr"
+	"eliborate/internal/convertors"
+	"eliborate/internal/models/domain"
+	"eliborate/internal/repository"
 )
 
 type publicService struct {
-	repo   repository.PublicRepo
-	logger *lgr.Log
+	repo repository.PublicRepo
 }
 
-func InitPublicService(repo repository.PublicRepo, logger *lgr.Log) PublicService {
+func InitPublicService(repo repository.PublicRepo) PublicService {
 	return publicService{
-		repo:   repo,
-		logger: logger,
+		repo: repo,
 	}
 }
 
-func (p publicService) GetByLogin(ctx context.Context, userType, login string) (int, string, error) {
-	id, password, err := p.repo.GetByLogin(ctx, userType, login)
+func (p publicService) GetUserByLogin(ctx context.Context, login string) (domain.User, error) {
+	user, err := p.repo.GetUserByLogin(ctx, login)
 	if err != nil {
-		return 0, "", err
+		return domain.User{}, err
 	}
+	return convertors.EntityUserToDomain(user), nil
+}
 
-	return id, password, nil
+func (p publicService) GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error) {
+	user, err := p.repo.GetAdminUserByLogin(ctx, login)
+	if err != nil {
+		return domain.AdminUser{}, err
+	}
+	return convertors.EntityAdminUserToDomain(user), nil
 }

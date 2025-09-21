@@ -1,35 +1,37 @@
 package domain
 
-import (
-	"database/sql"
-
-	"github.com/lib/pq"
-)
-
 type BookInfo struct {
 	Title       string
-	Authors     pq.StringArray
-	Description sql.NullString
-	Category    int
-	IsForeign   bool
-	CoverURL    sql.NullString
-}
-
-type UpdateBookInfo struct {
-	Title                 sql.NullString
-	Authors               pq.StringArray
-	Description, Category sql.NullString
-	IsForeign             sql.NullBool
-	CoverURL              sql.NullString
+	Authors     []string
+	Description string
+	CoverUrls   []string
 }
 
 type BookPlacement struct {
+	Rack, Shelf int
+}
+
+type BookCreate struct {
 	BookInfo
-	Rack  int
-	Shelf int
+	CategoryID int
+	BookPlacement
 }
 
 type Book struct {
 	ID int
+	BookInfo
+	Category string
 	BookPlacement
+}
+
+type UpdateBookInfo struct {
+	Title       *string
+	Authors     []string
+	Description *string
+	CategoryID  *int
+	CoverUrls   []string
+}
+
+type UpdateBookPlacement struct {
+	Rack, Shelf *int
 }

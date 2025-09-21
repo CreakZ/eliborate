@@ -1,19 +1,23 @@
-# игнорирование конфигурационных файлов
+# vscode settings
+.vscode/
+
+# config files
 .env
 test.env
+cors.config.toml
 
-admins.yaml
-
-# игнорирование временных файлов ("грязные" файлы времен создания проекта)
+# temporary files and directories ("dirty" files created at project start)
 tmp
 temp
 internal/requests/result.txt
 
-# игнорированные тестовых Dockerfile и Docker compose
+# test Dockerfiles and docker composes
 compose.test.yaml
 app.test.Dockerfile
 
-
-# игнорирование локальных логов
+# local log files
 info.log 
 error.log
+
+# raw protobuf files
+proto/

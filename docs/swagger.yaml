@@ -1,0 +1,672 @@
+definitions:
+  dto.Book:
+    properties:
+      authors:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      cover_urls:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      id:
+        type: integer
+      rack:
+        type: integer
+      shelf:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.BookCreate:
+    properties:
+      authors:
+        items:
+          type: string
+        type: array
+      category_id:
+        type: integer
+      cover_urls:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      rack:
+        type: integer
+      shelf:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.BookPlacement:
+    properties:
+      rack:
+        type: integer
+      shelf:
+        type: integer
+    type: object
+  dto.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.CategoryCreateUpdate:
+    properties:
+      name:
+        type: string
+    type: object
+  dto.Credentials:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.UpdateBookInfo:
+    properties:
+      authors:
+        items:
+          type: string
+        type: array
+      category_id:
+        type: integer
+      cover_urls:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.UserCreate:
+    properties:
+      login:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  responses.BookPaginationResponse:
+    properties:
+      books:
+        items:
+          $ref: '#/definitions/dto.Book'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      rack:
+        type: integer
+      search_query:
+        type: string
+      total_pages:
+        type: integer
+    type: object
+  responses.Categories:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/dto.Category'
+        type: array
+    type: object
+  responses.JwtResponse:
+    properties:
+      jwt:
+        type: string
+    type: object
+  responses.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact:
+    email: shejustwannagethigh@yandex.ru
+    name: Maxim Rusakov
+  description: Swagger OpenAPI documentation for Eliborate service
+  title: Eliborate API Documentation
+  version: "1.0"
+paths:
+  /admins:
+    patch:
+      consumes:
+      - application/json
+      description: Update admin user password according to his ID
+      parameters:
+      - description: New admin user password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update admin user password
+      tags:
+      - admin auth
+  /auth/admin:
+    post:
+      consumes:
+      - application/json
+      description: Logs in an admin user and returns an access token if the login
+        credentials are valid.
+      parameters:
+      - description: Login of the admin user
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Credentials'
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login an admin user
+      tags:
+      - auth
+  /auth/user:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a regular user and returns an access token if the login
+        credentials are valid.
+      parameters:
+      - description: Login of the user
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Credentials'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Access token
+          schema:
+            $ref: '#/definitions/responses.JwtResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      summary: Logs in a regular user
+      tags:
+      - auth
+  /books:
+    get:
+      description: Retrieve a list of books with pagination, optional rack filtering
+        and full-text search
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Books limit per page (10, 20, 50 or 100)
+        in: query
+        name: limit
+        required: true
+        type: integer
+      - description: Rack number to filter books
+        in: query
+        name: rack
+        type: integer
+      - description: Full-text search query
+        in: query
+        name: search_query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.BookPaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      summary: Get a paginated list of books
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: Create a new book entry in the system
+      parameters:
+      - description: Book Create
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BookCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new book
+      tags:
+      - books
+  /books/{id}:
+    delete:
+      description: Remove a book from the system using its ID
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a book by its ID
+      tags:
+      - books
+    get:
+      description: Retrieve book information by its id
+      parameters:
+      - description: Book id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.Book'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      summary: Get book by id
+      tags:
+      - books
+  /books/{id}/info:
+    patch:
+      consumes:
+      - application/json
+      description: Update details of an existing book
+      parameters:
+      - description: Book id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update Book Info
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBookInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update book information
+      tags:
+      - books
+  /books/{id}/placement:
+    patch:
+      consumes:
+      - application/json
+      description: Update the rack and shelf placement of a book
+      parameters:
+      - description: Book id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Book Placement
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BookPlacement'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update book placement
+      tags:
+      - books
+  /categories:
+    get:
+      description: Get all book categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Categories'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all book categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create new book category
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new book category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      description: Delete book category (not done yet)
+      parameters:
+      - description: Category id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete book category
+      tags:
+      - categories
+    patch:
+      description: Update book category (not done yet)
+      parameters:
+      - description: Category id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New category name
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CategoryCreateUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update book category
+      tags:
+      - categories
+  /users:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the user with the provided ID
+      parameters:
+      - description: User ID
+        in: body
+        name: id
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - user
+    patch:
+      consumes:
+      - application/json
+      description: Updates the password for the user with the given ID
+      parameters:
+      - description: User ID
+        in: body
+        name: id
+        required: true
+        schema:
+          type: integer
+      - description: New password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - user
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user with provided login and password
+      parameters:
+      - description: User information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCreate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.MessageResponse'
+      summary: Create a new user
+      tags:
+      - user
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

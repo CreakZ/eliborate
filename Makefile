@@ -5,3 +5,7 @@ init_book_repo_tests:
 # тестирование функций-конверторов
 convertors_test:
 	cd internal/convertors && go test
+
+# генерация документации
+swagger:
+	swag init --dir ./cmd,./internal/delivery/handlers,./internal/delivery/responses --parseDependency

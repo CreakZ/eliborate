@@ -3,30 +3,37 @@ package dto
 type BookInfo struct {
 	Title       string   `json:"title"`
 	Authors     []string `json:"authors"`
-	Description *string  `json:"description"`
-	Category    string   `json:"category"`
-	IsForeign   bool     `json:"is_foreign"`
-
-	// Обложка книги. Хранит URL изображения
-	CoverURL *string `json:"logo"`
-}
-
-type UpdateBookInfo struct {
-	Title       *string   `json:"title"`
-	Authors     *[]string `json:"authors"`
-	Description *string   `json:"description"`
-	Category    *string   `json:"category"`
-	IsForeign   *bool     `json:"is_foreign"`
-	CoverURL    *string   `json:"logo"`
+	Description string   `json:"description"`
+	CoverUrls   []string `json:"cover_urls"`
 }
 
 type BookPlacement struct {
-	BookInfo
 	Rack  int `json:"rack"`
 	Shelf int `json:"shelf"`
 }
 
+type BookCreate struct {
+	BookInfo
+	CategoryID int `json:"category_id"`
+	BookPlacement
+}
+
 type Book struct {
 	ID int `json:"id"`
+	BookInfo
+	Category string `json:"category"`
 	BookPlacement
+}
+
+type UpdateBookInfo struct {
+	Title       *string  `json:"title"`
+	Authors     []string `json:"authors"`
+	Description *string  `json:"description"`
+	CategoryID  *int     `json:"category_id"`
+	CoverUrls   []string `json:"cover_urls"`
+}
+
+type UpdateBookPlacement struct {
+	Rack  *int `json:"rack"`
+	Shelf *int `json:"shelf"`
 }

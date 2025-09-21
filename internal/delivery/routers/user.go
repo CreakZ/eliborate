@@ -1,25 +1,23 @@
 package routers
 
 import (
-	"yurii-lib/internal/delivery/handlers"
-	"yurii-lib/internal/repository"
-	"yurii-lib/internal/service"
-	"yurii-lib/pkg/lgr"
+	"eliborate/internal/delivery/handlers"
+	"eliborate/internal/delivery/middleware"
+	"eliborate/internal/repository"
+	"eliborate/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitUserRouter(group *gin.RouterGroup, db *sqlx.DB, logger *lgr.Log) {
+func InitUserRouter(group *gin.RouterGroup, db *sqlx.DB, middleware middleware.Middleware) {
 	userRepo := repository.InitUserRepo(db)
-	userService := service.InitUserService(userRepo, logger)
+	userService := service.InitUserService(userRepo)
 	userHandlers := handlers.InitUserHandlers(userService)
 
 	group.POST("", userHandlers.Create)
 
-	group.GET("", userHandlers.GetPassword)
+	group.PATCH("", middleware.BearerAuthMiddleware(), userHandlers.UpdatePassword)
 
-	group.PUT("", userHandlers.UpdatePassword)
-
-	group.DELETE("", userHandlers.Delete)
+	group.DELETE("", middleware.BearerAuthMiddleware(), userHandlers.Delete)
 }

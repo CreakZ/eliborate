@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"eliborate/internal/models/entity"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,19 +17,24 @@ func InitPublicRepo(db *sqlx.DB) PublicRepo {
 	}
 }
 
-func (p publicRepo) GetByLogin(ctx context.Context, userType, login string) (int, string, error) {
-	query := "SELECT (id, password) FROM %s WHERE login=$1"
+func (p publicRepo) GetUserByLogin(ctx context.Context, login string) (entity.User, error) {
+	var user entity.User
 
-	row := p.db.QueryRowContext(ctx, fmt.Sprintf(query, userType), login)
-
-	var (
-		id       int
-		password string
-	)
-
-	if err := row.Scan(&id, &password); err != nil {
-		return 0, "", err
+	row := p.db.QueryRowContext(ctx, `SELECT * FROM users WHERE login = $1`, login)
+	if err := row.Scan(&user.ID, &user.Name, &user.Login, &user.Password); err != nil {
+		return entity.User{}, err
 	}
 
-	return id, password, nil
+	return user, nil
+}
+
+func (p publicRepo) GetAdminUserByLogin(ctx context.Context, login string) (entity.AdminUser, error) {
+	var adminUser entity.AdminUser
+
+	row := p.db.QueryRowContext(ctx, `SELECT * FROM admins WHERE login = $1`, login)
+	if err := row.Scan(&adminUser.ID, &adminUser.Login, &adminUser.Password); err != nil {
+		return entity.AdminUser{}, err
+	}
+
+	return adminUser, nil
 }

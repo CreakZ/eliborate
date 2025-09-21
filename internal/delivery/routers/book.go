@@ -1,40 +1,33 @@
 package routers
 
 import (
-	"yurii-lib/internal/delivery/handlers"
-	"yurii-lib/internal/delivery/middleware"
-	"yurii-lib/internal/repository"
-	"yurii-lib/internal/service"
-	"yurii-lib/pkg/lgr"
+	"eliborate/internal/delivery/handlers"
+	"eliborate/internal/delivery/middleware"
+	"eliborate/internal/repository"
+	"eliborate/internal/service"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
+	"github.com/meilisearch/meilisearch-go"
 )
 
 func InitBooksRouter(
-	group *gin.RouterGroup,
+	rg *gin.RouterGroup,
 	db *sqlx.DB,
-	cache *redis.Client,
-	storage *s3.S3,
-	log *lgr.Log,
 	middleware middleware.Middleware,
+	search meilisearch.IndexManager,
 ) {
-	bookRepo := repository.InitBookRepo(db, storage)
-	bookService := service.InitBookService(bookRepo, log)
-	bookHandlers := handlers.InitBookHandlers(bookService, cache)
+	bookRepo := repository.InitBookRepo(db, search)
+	bookService := service.InitBookService(bookRepo)
+	bookHandlers := handlers.InitBookHandlers(bookService)
 
-	group.POST("", bookHandlers.CreateBook)
+	rg.POST("", middleware.BearerAuthMiddleware(), bookHandlers.CreateBook)
 
-	group.GET("/:isbn", bookHandlers.GetBookByISBN)
+	rg.GET("/:id", bookHandlers.GetBookById)
+	rg.GET("", bookHandlers.GetBooks)
 
-	group.PUT("/update/info", bookHandlers.UpdateBookInfo)
-	group.PUT("/update/placement", bookHandlers.UpdateBookPlacement)
+	rg.PATCH("/:id/info", middleware.BearerAuthMiddleware(), bookHandlers.UpdateBookInfo)
+	rg.PATCH("/:id/placement", middleware.BearerAuthMiddleware(), bookHandlers.UpdateBookPlacement)
 
-	group.DELETE("", bookHandlers.DeleteBook)
-
-	group.POST("/racks", bookHandlers.GetBooksByRack)
-	group.GET("", bookHandlers.GetBooks)
-	group.GET("/search", bookHandlers.GetBooksByTextSearch)
+	rg.DELETE("/:id", middleware.BearerAuthMiddleware(), bookHandlers.DeleteBook)
 }

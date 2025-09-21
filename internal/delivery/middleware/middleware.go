@@ -1,18 +1,18 @@
 package middleware
 
 import (
-	"yurii-lib/pkg/lgr"
-	"yurii-lib/pkg/utils/jwt"
+	"eliborate/pkg/config"
+	"eliborate/pkg/utils"
 )
 
 type Middleware struct {
-	jwtUtil jwt.JWT
-	logger  *lgr.Log
+	jwtUtil utils.JWT
+	corsCfg *config.CorsConfig
 }
 
-func InitMiddleware(util jwt.JWT, logger *lgr.Log) Middleware {
+func InitMiddleware(util utils.JWT, corsCfg *config.CorsConfig) Middleware {
 	return Middleware{
 		jwtUtil: util,
-		logger:  logger,
+		corsCfg: corsCfg,
 	}
 }

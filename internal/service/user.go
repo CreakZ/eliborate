@@ -2,75 +2,64 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"yurii-lib/internal/convertors"
-	"yurii-lib/internal/models/dto"
-	"yurii-lib/internal/repository"
-
-	"yurii-lib/pkg/lgr"
+	"eliborate/internal/convertors"
+	"eliborate/internal/models/domain"
+	"eliborate/internal/repository"
+	"eliborate/internal/service/validation"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type userService struct {
-	repo   repository.UserRepo
-	logger *lgr.Log
+	repo repository.UserRepo
 }
 
-func InitUserService(repo repository.UserRepo, logger *lgr.Log) UserService {
+func InitUserService(repo repository.UserRepo) UserService {
 	return userService{
-		repo:   repo,
-		logger: logger,
+		repo: repo,
 	}
 }
 
-func (u userService) Create(ctx context.Context, user dto.UserCreate) (int, error) {
-	userConv := convertors.ToDomainUserCreate(user)
+func (u userService) Create(ctx context.Context, user domain.UserCreate) (int, error) {
+	if err := validation.ValidateUserCreate(user); err != nil {
+		return 0, err
+	}
 
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userConv.Password), bcrypt.DefaultCost)
+	userEntity := convertors.DomainUserCreateToEntity(user)
+
+	if err := validation.ValidatePassword(user.Password); err != nil {
+		return 0, err
+	}
+
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userEntity.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, err
 	}
 
-	userConv.Password = string(hashedPass)
+	userEntity.Password = string(hashedPass)
 
-	id, err := u.repo.Create(ctx, userConv)
+	id, err := u.repo.Create(ctx, userEntity)
 	if err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("user create error '%s'", err.Error()))
 		return 0, err
 	}
 
 	return id, nil
 }
 
-func (u userService) CheckByLogin(ctx context.Context, login string) (bool, error) {
-	exists, err := u.repo.CheckByLogin(ctx, login)
-	if err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("get user password error '%s'", err.Error()))
-		return false, err
-	}
-
-	return exists, nil
-}
-
-func (u userService) GetPassword(ctx context.Context, id int) (string, error) {
-	password, err := u.repo.GetPassword(ctx, id)
-	if err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("get user password error '%s'", err.Error()))
-		return "", err
-	}
-
-	return password, nil
-}
-
 func (u userService) UpdatePassword(ctx context.Context, id int, password string) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+	if err := validation.ValidatePassword(password); err != nil {
+		return err
+	}
+
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
 	if err := u.repo.UpdatePassword(ctx, id, string(hashedPass)); err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("user update error '%s'", err.Error()))
 		return err
 	}
 
@@ -78,8 +67,11 @@ func (u userService) UpdatePassword(ctx context.Context, id int, password string
 }
 
 func (u userService) Delete(ctx context.Context, id int) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	if err := u.repo.Delete(ctx, id); err != nil {
-		u.logger.InfoLogger.Info().Msg(fmt.Sprintf("user delete error '%s'", err.Error()))
 		return err
 	}
 

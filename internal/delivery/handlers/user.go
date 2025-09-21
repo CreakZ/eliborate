@@ -1,13 +1,15 @@
 package handlers
 
 import (
+	"eliborate/internal/convertors"
+	"eliborate/internal/delivery/responses"
+	"eliborate/internal/models/dto"
+	"eliborate/internal/service"
 	"fmt"
 	"net/http"
-	"yurii-lib/internal/models/dto"
-	"yurii-lib/internal/service"
-	"yurii-lib/internal/validators"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
 
 type userHandlers struct {
@@ -24,159 +26,102 @@ func InitUserHandlers(service service.UserService) UserHandlers {
 // @Summary Create a new user
 // @Description Creates a new user with provided login and password
 // @Tags user
-// @Accept  json
-// @Produce  json
-// @Param  user body dto.UserCreate true "User information"
-// @Success 201 {object} map[string]int
-// @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 418 {object} map[string]string
-// @Router /user [post]
+// @Accept json
+// @Produce json
+// @Param user body dto.UserCreate true "User information"
+// @Success 201 {object} responses.MessageResponse
+// @Failure 400 {object} responses.MessageResponse
+// @Failure 404 {object} responses.MessageResponse
+// @Failure 409 {object} responses.MessageResponse
+// @Failure 500 {object} responses.MessageResponse
+// @Router /users [post]
 func (u userHandlers) Create(c *gin.Context) {
-	var user dto.UserCreate
+	var userCreate dto.UserCreate
 
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	if err := c.ShouldBindJSON(&userCreate); err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	valid := validators.ValidatePassword(user.Password)
-	if !valid {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "insecure password"})
-		return
-	}
+	userCreateDomain := convertors.DtoUserCreateToDomain(userCreate)
 
-	exists, err := u.service.CheckByLogin(c.Request.Context(), user.Login)
+	id, err := u.service.Create(c.Request.Context(), userCreateDomain)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		pqErr, ok := err.(*pq.Error)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		} else if pqErr.Code == "23505" {
+			c.JSON(
+				http.StatusConflict,
+				responses.NewMessageResponse(
+					fmt.Sprintf("user with '%s' login already exists", userCreateDomain.Login),
+				),
+			)
+		}
 		return
 	}
 
-	if exists {
-		c.AbortWithStatusJSON(
-			http.StatusConflict,
-			gin.H{"message": fmt.Sprintf("user with '%s' login already exists", user.Login)},
-		)
-		return
-	}
-
-	id, err := u.service.Create(c.Request.Context(), user)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusTeapot, gin.H{"message": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"id": id})
-}
-
-// GetPassword godoc
-// @Summary Get user password by ID
-// @Description Retrieves the password for a user given their ID
-// @Tags user
-// @Accept  json
-// @Produce  json
-// @Param  id body int true "User ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 418 {object} map[string]string
-// @Router /user [get]
-func (u userHandlers) GetPassword(c *gin.Context) {
-	body := struct {
-		ID int `json:"id"`
-	}{
-		ID: 0,
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	if body.ID < 1 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "id is less than 1"})
-		return
-	}
-
-	password, err := u.service.GetPassword(c.Request.Context(), body.ID)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusTeapot, gin.H{"message": err.Error()})
-		return
-	}
-
-	c.AbortWithStatusJSON(http.StatusOK, gin.H{"password": password})
+	c.JSON(http.StatusCreated, responses.NewBookCreateResponse(id))
 }
 
 // UpdatePassword godoc
 // @Summary Update user password
 // @Description Updates the password for the user with the given ID
 // @Tags user
-// @Accept  json
-// @Produce  json
-// @Param  id body int true "User ID"
-// @Param  password body string true "New password"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Router /user [put]
+// @Accept json
+// @Produce json
+// @Param password body dto.PasswordUpdate true "New password"
+// @Security BearerAuth
+// @Success 200 {object} responses.MessageResponse
+// @Failure 400 {object} responses.MessageResponse
+// @Failure 401 {object} responses.MessageResponse
+// @Failure 500 {object} responses.MessageResponse
+// @Router /users [patch]
 func (u userHandlers) UpdatePassword(c *gin.Context) {
-	body := struct {
-		ID       int    `json:"id"`
-		Password string `json:"password"`
-	}{
-		ID:       0,
-		Password: "",
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	id, err := GetIdFromKeys(c.Keys)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	valid := validators.ValidatePassword(body.Password)
-	if !valid {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "password is invalid"})
+	update := dto.PasswordUpdate{}
+
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if err := u.service.UpdatePassword(c.Request.Context(), body.ID, body.Password); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	if err := u.service.UpdatePassword(c.Request.Context(), id, update.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	c.AbortWithStatus(http.StatusOK)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }
 
 // DeleteUser godoc
 // @Summary Delete a user
 // @Description Deletes the user with the provided ID
 // @Tags user
-// @Accept  json
-// @Produce  json
-// @Param  id body int true "User ID"
+// @Accept json
+// @Produce json
+// @Param id body int true "User ID"
+// @Security BearerAuth
 // @Success 200
-// @Failure 400 {object} map[string]string
-// @Router /user [delete]
+// @Failure 400 {object} responses.MessageResponse
+// @Failure 401 {object} responses.MessageResponse
+// @Router /users [delete]
 func (u userHandlers) Delete(c *gin.Context) {
-	body := struct {
-		ID int `json:"id"`
-	}{
-		ID: 0,
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	id, err := GetIdFromKeys(c.Keys)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if body.ID < 1 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "id is less than 1"})
+	if err := u.service.Delete(c.Request.Context(), id); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	if err := u.service.Delete(c.Request.Context(), body.ID); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	c.AbortWithStatus(http.StatusOK)
+	c.JSON(http.StatusOK, responses.NewSuccessMessageResponse())
 }

@@ -2,33 +2,29 @@ package service
 
 import (
 	"context"
-	"yurii-lib/internal/models/dto"
+	"eliborate/internal/models/domain"
 )
 
 type BookService interface {
-	CreateBook(ctx context.Context, book dto.BookPlacement) (int, error)
+	CreateBook(ctx context.Context, book domain.BookCreate) (int, error)
 
-	GetBooks(ctx context.Context, page, limit int) ([]dto.Book, error)
+	GetBookById(ctx context.Context, id int) (domain.Book, error)
+	GetBooks(ctx context.Context, page, limit int, rack *int, searchQuery *string) ([]domain.Book, error)
 	GetBooksTotalCount(ctx context.Context) (int, error)
-	GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, error)
-	GetBooksByTextSearch(ctx context.Context, text string) ([]dto.Book, error)
 
-	UpdateBookInfo(ctx context.Context, id int, book dto.UpdateBookInfo) error
-	UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error
+	UpdateBookInfo(ctx context.Context, id int, updates domain.UpdateBookInfo) error
+	UpdateBookPlacement(ctx context.Context, id int, updates domain.UpdateBookPlacement) error
 
 	DeleteBook(ctx context.Context, id int) error
 }
 
 type PublicService interface {
-	GetByLogin(ctx context.Context, userType, login string) (int, string, error)
+	GetUserByLogin(ctx context.Context, login string) (domain.User, error)
+	GetAdminUserByLogin(ctx context.Context, login string) (domain.AdminUser, error)
 }
 
 type UserService interface {
-	Create(ctx context.Context, user dto.UserCreate) (int, error)
-
-	CheckByLogin(ctx context.Context, login string) (bool, error)
-
-	GetPassword(ctx context.Context, id int) (string, error)
+	Create(ctx context.Context, user domain.UserCreate) (int, error)
 
 	UpdatePassword(ctx context.Context, id int, password string) error
 
@@ -36,11 +32,12 @@ type UserService interface {
 }
 
 type AdminUserService interface {
-	// Create(ctx context.Context, user dto.AdminUserCreate) (int, error)
-
-	GetPassword(ctx context.Context, id int) (string, error)
-
 	UpdatePassword(ctx context.Context, id int, password string) error
+}
 
-	// Delete(ctx context.Context, id int) error
+type CategoryService interface {
+	Create(ctx context.Context, categoryName string) error
+	GetAll(ctx context.Context) ([]domain.Category, error)
+	Update(ctx context.Context, id int, newName string) error
+	Delete(ctx context.Context, id int) error
 }

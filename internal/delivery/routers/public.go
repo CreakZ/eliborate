@@ -1,19 +1,18 @@
 package routers
 
 import (
-	"yurii-lib/internal/delivery/handlers"
-	"yurii-lib/internal/repository"
-	"yurii-lib/internal/service"
-	"yurii-lib/pkg/lgr"
-	"yurii-lib/pkg/utils/jwt"
+	"eliborate/internal/delivery/handlers"
+	"eliborate/internal/repository"
+	"eliborate/internal/service"
+	"eliborate/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
 
-func InitPublicRouter(group *gin.RouterGroup, db *sqlx.DB, logger *lgr.Log, jwt jwt.JWT) {
+func InitPublicRouter(group *gin.RouterGroup, db *sqlx.DB, jwt utils.JWT) {
 	publicRepo := repository.InitPublicRepo(db)
-	publicService := service.InitPublicService(publicRepo, logger)
+	publicService := service.InitPublicService(publicRepo)
 	publicHandlers := handlers.InitPublicHandlers(publicService, jwt)
 
 	group.POST("/admin", publicHandlers.LoginAdminUser)

@@ -3,9 +3,11 @@ package constants
 const (
 	DefaultS3BucketName = "images"
 
-	ISBNSize  = 13
-	threshold = .3
+	RedisTotalBooks = "total_books"
 
-	TypeAdminUsers = "admin_users"
-	TypeUsers      = "users"
+	KeyUserID = "user_id"
+	KeyRole   = "role"
+
+	RoleAdmin  = "adm"
+	RoleClient = "usr"
 )

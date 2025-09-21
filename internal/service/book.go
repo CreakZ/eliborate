@@ -2,56 +2,78 @@ package service
 
 import (
 	"context"
+	"eliborate/internal/convertors"
+	"eliborate/internal/models/domain"
+	"eliborate/internal/repository"
+	"eliborate/internal/service/servutils"
+	"eliborate/internal/service/validation"
 	"fmt"
-	"yurii-lib/internal/convertors"
-	"yurii-lib/internal/models/dto"
-	"yurii-lib/internal/repository"
-	"yurii-lib/pkg/lgr"
 )
-
-var ErrWrongCategory = fmt.Errorf("wrong category name")
 
 type bookService struct {
 	repo repository.BookRepo
-	log  *lgr.Log
 }
 
-func InitBookService(repo repository.BookRepo, log *lgr.Log) BookService {
+func InitBookService(repo repository.BookRepo) BookService {
 	return bookService{
 		repo: repo,
-		log:  log,
 	}
 }
 
-func (b bookService) CreateBook(ctx context.Context, book dto.BookPlacement) (int, error) {
-	bookConv := convertors.ToDomainBookPlacement(book)
-
-	if bookConv.Category == -1 {
-		b.log.InfoLogger.Info().Msg("wrong book category")
-		return 0, ErrWrongCategory
+func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
+	err := validation.ValidateBookCreate(book)
+	if err != nil {
+		return 0, fmt.Errorf("book_create: %w", err)
 	}
 
-	userID, err := b.repo.CreateBook(ctx, bookConv)
+	bookEntity := convertors.DomainBookCreateToEntity(book)
+
+	bookID, err := b.repo.CreateBook(ctx, bookEntity)
 	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("create book %v", err.Error()))
 		return 0, err
 	}
 
-	return userID, nil
+	return bookID, nil
 }
 
-func (b bookService) GetBooks(ctx context.Context, page, limit int) ([]dto.Book, error) {
-	booksRaw, err := b.repo.GetBooks(ctx, page, limit)
+func (b bookService) GetBookById(ctx context.Context, id int) (domain.Book, error) {
+	if err := validation.ValidateID(id); err != nil {
+		return domain.Book{}, err
+	}
+
+	book, err := b.repo.GetBookById(ctx, id)
 	if err != nil {
-		return []dto.Book{}, err
+		return domain.Book{}, err
 	}
 
-	books := make([]dto.Book, len(booksRaw))
+	return convertors.EntityBookToDomain(book), nil
+}
 
-	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
+func (b bookService) GetBooks(ctx context.Context, page, limit int, rack *int, searchQuery *string) ([]domain.Book, error) {
+	if err := validation.ValidatePage(page); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateLimit(limit); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateRackPtr(rack); err != nil {
+		return []domain.Book{}, err
+	}
+	if err := validation.ValidateSearchQueryPtr(searchQuery); err != nil {
+		return []domain.Book{}, err
 	}
 
+	offset := servutils.CountOffset(page, limit)
+
+	booksRaw, err := b.repo.GetBooks(ctx, offset, limit, rack, searchQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	books := make([]domain.Book, 0, len(booksRaw))
+	for _, book := range booksRaw {
+		books = append(books, convertors.EntityBookToDomain(book))
+	}
 	return books, nil
 }
 
@@ -60,65 +82,50 @@ func (b bookService) GetBooksTotalCount(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return count, nil
 }
 
-func (b bookService) GetBooksByRack(ctx context.Context, rack int) ([]dto.Book, error) {
-	booksRaw, err := b.repo.GetBooksByRack(ctx, rack)
-	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by rack %v", err.Error()))
-		return []dto.Book{}, err
+func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.UpdateBookInfo) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
 	}
-
-	var books = make([]dto.Book, len(booksRaw))
-
-	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
-	}
-
-	return books, err
-}
-
-func (b bookService) GetBooksByTextSearch(ctx context.Context, text string) ([]dto.Book, error) {
-	booksRaw, err := b.repo.GetBooksByTextSearch(ctx, text)
-	if err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("get book by fulltext search %s", err.Error()))
-		return []dto.Book{}, err
-	}
-
-	var books = make([]dto.Book, len(booksRaw))
-
-	for i := range booksRaw {
-		books[i] = convertors.ToDtoBook(booksRaw[i])
-	}
-
-	return books, nil
-}
-
-func (b bookService) UpdateBookInfo(ctx context.Context, id int, book dto.UpdateBookInfo) error {
-	bookConv := convertors.UpdateBookInfoToMap(book)
-
-	if err := b.repo.UpdateBookInfo(ctx, id, bookConv); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book info %v", err.Error()))
+	if err := validation.ValidateUpdateBookInfo(book); err != nil {
 		return err
 	}
 
+	updates := convertors.DomainUpdateBookInfoToEntity(book)
+
+	if err := b.repo.UpdateBookInfo(ctx, id, updates); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (b bookService) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
-	if err := b.repo.UpdateBookPlacement(ctx, id, rack, shelf); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book placement %v", err.Error()))
+func (b bookService) UpdateBookPlacement(ctx context.Context, id int, book domain.UpdateBookPlacement) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+	if err := validation.ValidateRackPtr(book.Rack); err != nil {
+		return err
+	}
+	if err := validation.ValidateShelfPtr(book.Shelf); err != nil {
 		return err
 	}
 
+	updates := convertors.DomainUpdateBookPlacementToEntity(book)
+
+	if err := b.repo.UpdateBookPlacement(ctx, id, updates); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (b bookService) DeleteBook(ctx context.Context, id int) error {
+	if err := validation.ValidateID(id); err != nil {
+		return err
+	}
+
 	if err := b.repo.DeleteBook(ctx, id); err != nil {
-		b.log.InfoLogger.Info().Msg(fmt.Sprintf("delete book %v", err.Error()))
 		return err
 	}
 
