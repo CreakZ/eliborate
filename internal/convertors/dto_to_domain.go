@@ -82,3 +82,10 @@ func DtoUpdateBookInfoToDomain(updateBook dto.UpdateBookInfo) domain.UpdateBookI
 		CoverUrls:   updateBook.CoverUrls,
 	}
 }
+
+func DtoUpdateBookPlacementToDomain(updateBook dto.UpdateBookPlacement) domain.UpdateBookPlacement {
+	return domain.UpdateBookPlacement{
+		Rack:  updateBook.Rack,
+		Shelf: updateBook.Shelf,
+	}
+}

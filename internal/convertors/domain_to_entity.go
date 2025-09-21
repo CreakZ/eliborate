@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	domain "eliborate/internal/models/domain"
 	"eliborate/internal/models/entity"
-
-	"github.com/lib/pq"
 )
 
 func DomainCredentialsToEntity(credentials domain.Credentials) entity.Credentials {
@@ -81,32 +79,19 @@ func DomainAdminUser(user domain.AdminUser) entity.AdminUser {
 	}
 }
 
-func UpdateBookInfoToMap(book domain.UpdateBookInfo) map[string]any {
-	values := make(map[string]any, 1)
-
-	if len(book.Authors) != 0 {
-		var authors pq.StringArray
-		authors.Scan(book.Authors)
-		values["authors"] = authors
+func DomainUpdateBookInfoToEntity(book domain.UpdateBookInfo) entity.UpdateBookInfo {
+	return entity.UpdateBookInfo{
+		Title:       book.Title,
+		Authors:     book.Authors,
+		Description: book.Description,
+		CategoryID:  book.CategoryID,
+		CoverUrls:   book.CoverUrls,
 	}
+}
 
-	if book.CategoryID != 0 {
-		values["category_id"] = book.CategoryID
+func DomainUpdateBookPlacementToEntity(book domain.UpdateBookPlacement) entity.UpdateBookPlacement {
+	return entity.UpdateBookPlacement{
+		Rack:  book.Rack,
+		Shelf: book.Shelf,
 	}
-
-	if book.Description != nil {
-		values["description"] = *book.Description
-	}
-
-	if book.Title != nil {
-		values["title"] = *book.Title
-	}
-
-	if len(book.CoverUrls) != 0 {
-		var coverUrls pq.StringArray
-		coverUrls.Scan(book.CoverUrls)
-		values["cover_urls"] = coverUrls
-	}
-
-	return values
 }

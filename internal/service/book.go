@@ -6,7 +6,7 @@ import (
 	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
 	"eliborate/internal/service/servutils"
-	"eliborate/internal/service/servutils/validation"
+	"eliborate/internal/service/validation"
 	"eliborate/pkg/logging"
 	"fmt"
 )
@@ -28,7 +28,7 @@ func InitBookService(repo repository.BookRepo, log *logging.Log) BookService {
 func (b bookService) CreateBook(ctx context.Context, book domain.BookCreate) (int, error) {
 	err := validation.ValidateBookCreate(book)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("book_create: %w", err)
 	}
 
 	bookEntity := convertors.DomainBookCreateToEntity(book)
@@ -95,22 +95,33 @@ func (b bookService) UpdateBookInfo(ctx context.Context, id int, book domain.Upd
 	if err := validation.ValidateID(id); err != nil {
 		return err
 	}
+	if err := validation.ValidateUpdateBookInfo(book); err != nil {
+		return err
+	}
 
-	bookConv := convertors.UpdateBookInfoToMap(book)
+	updates := convertors.DomainUpdateBookInfoToEntity(book)
 
-	if err := b.repo.UpdateBookInfo(ctx, id, bookConv); err != nil {
+	if err := b.repo.UpdateBookInfo(ctx, id, updates); err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book info %v", err.Error()))
 		return err
 	}
 	return nil
 }
 
-func (b bookService) UpdateBookPlacement(ctx context.Context, id, rack, shelf int) error {
+func (b bookService) UpdateBookPlacement(ctx context.Context, id int, book domain.UpdateBookPlacement) error {
 	if err := validation.ValidateID(id); err != nil {
 		return err
 	}
+	if err := validation.ValidateRackPtr(book.Rack); err != nil {
+		return err
+	}
+	if err := validation.ValidateShelfPtr(book.Shelf); err != nil {
+		return err
+	}
 
-	if err := b.repo.UpdateBookPlacement(ctx, id, rack, shelf); err != nil {
+	updates := convertors.DomainUpdateBookPlacementToEntity(book)
+
+	if err := b.repo.UpdateBookPlacement(ctx, id, updates); err != nil {
 		b.log.InfoLogger.Info().Msg(fmt.Sprintf("update book placement %v", err.Error()))
 		return err
 	}

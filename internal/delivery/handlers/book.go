@@ -2,10 +2,9 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
-	"eliborate/internal/constants"
 	"eliborate/internal/convertors"
 	"eliborate/internal/delivery/responses"
+	"eliborate/internal/errs"
 	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
 	"eliborate/pkg/storage"
@@ -14,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 type bookHandlers struct {
@@ -52,20 +50,14 @@ func (b bookHandlers) CreateBook(c *gin.Context) {
 
 	id, err := b.service.CreateBook(context.Background(), bookDomain)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-		return
-	}
-
-	_, err = b.cache.GetInt(constants.RedisTotalBooks)
-	if errors.Is(err, redis.Nil) {
-		totalBooks, err := b.service.GetBooksTotalCount(context.Background())
-		if err != nil {
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		default:
 			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
-			return
 		}
-		b.cache.SetInt(constants.RedisTotalBooks, totalBooks)
-	} else {
-		b.cache.Incr(constants.RedisTotalBooks)
+		return
 	}
 
 	c.JSON(http.StatusCreated, responses.NewBookCreateResponse(id))
@@ -95,7 +87,15 @@ func (b bookHandlers) GetBookById(c *gin.Context) {
 
 	book, err := b.service.GetBookById(context.Background(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		case errors.Is(err, errs.ErrEntityNotFound):
+			c.JSON(http.StatusNotFound, responses.NewMessageResponse(err.Error()))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		}
 		return
 	}
 
@@ -153,7 +153,13 @@ func (b bookHandlers) GetBooks(c *gin.Context) {
 
 	books, err := b.service.GetBooks(c.Request.Context(), page, limit, rackPtr, searchQueryPtr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		}
 		return
 	}
 
@@ -192,22 +198,25 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 	}
 
 	var updateBook dto.UpdateBookInfo
-
 	if err = c.ShouldBindJSON(&updateBook); err != nil {
 		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
-		return
-	}
-
-	if updateBook.Authors == nil && updateBook.Description == nil &&
-		len(updateBook.CoverUrls) == 0 && updateBook.Title == nil {
-		c.JSON(http.StatusBadRequest, responses.NewMessageResponse("no parameters provided"))
 		return
 	}
 
 	updateBookDomain := convertors.DtoUpdateBookInfoToDomain(updateBook)
 
 	if err = b.service.UpdateBookInfo(c.Request.Context(), id, updateBookDomain); err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		case errors.Is(err, errs.ErrEntityNotFound):
+			c.JSON(http.StatusNotFound, responses.NewMessageResponse("book not found"))
+		case errors.Is(err, errs.ErrNoDataSentToUpdate):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("no data sent to update"))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		}
 		return
 	}
 
@@ -220,7 +229,7 @@ func (b bookHandlers) UpdateBookInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Book id"
-// @Param book body dto.BookPlacement true "Book Placement"
+// @Param book body dto.UpdateBookPlacement true "pdate Book Placement"
 // @Security BearerAuth
 // @Success 200 {object} responses.MessageResponse
 // @Failure 400 {object} responses.MessageResponse
@@ -234,16 +243,27 @@ func (b bookHandlers) UpdateBookPlacement(c *gin.Context) {
 		return
 	}
 
-	placement := dto.BookPlacement{}
-
-	if err := c.ShouldBindJSON(&placement); err != nil {
+	var updateBookDto dto.UpdateBookPlacement
+	if err := c.ShouldBindJSON(&updateBookDto); err != nil {
 		c.JSON(http.StatusBadRequest, responses.NewMessageResponse(err.Error()))
 		return
 	}
 
-	err = b.service.UpdateBookPlacement(c.Request.Context(), id, placement.Rack, placement.Shelf)
+	updateBook := convertors.DtoUpdateBookPlacementToDomain(updateBookDto)
+
+	err = b.service.UpdateBookPlacement(c.Request.Context(), id, updateBook)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		case errors.Is(err, errs.ErrEntityNotFound):
+			c.JSON(http.StatusNotFound, responses.NewMessageResponse("book not found"))
+		case errors.Is(err, errs.ErrNoDataSentToUpdate):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse("no data sent to update"))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))
+		}
 		return
 	}
 
@@ -275,8 +295,11 @@ func (b bookHandlers) DeleteBook(c *gin.Context) {
 	}
 
 	if err = b.service.DeleteBook(c.Request.Context(), id); err != nil {
-		switch err {
-		case sql.ErrNoRows:
+		var vErr *errs.ValidationError
+		switch {
+		case errors.As(err, &vErr):
+			c.JSON(http.StatusUnprocessableEntity, responses.NewMessageResponse(vErr.Error()))
+		case errors.Is(err, errs.ErrEntityNotFound):
 			c.JSON(http.StatusNotFound, responses.NewMessageResponse("book not found"))
 		default:
 			c.JSON(http.StatusInternalServerError, responses.NewMessageResponse(err.Error()))

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"eliborate/internal/repository"
-	"eliborate/internal/service/servutils/validation"
+	"eliborate/internal/service/validation"
 	"eliborate/pkg/logging"
 	"fmt"
 

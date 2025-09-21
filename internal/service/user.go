@@ -5,7 +5,7 @@ import (
 	"eliborate/internal/convertors"
 	"eliborate/internal/models/domain"
 	"eliborate/internal/repository"
-	"eliborate/internal/service/servutils/validation"
+	"eliborate/internal/service/validation"
 	"fmt"
 
 	"eliborate/pkg/logging"
