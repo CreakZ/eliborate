@@ -7,7 +7,6 @@ import (
 	"eliborate/internal/errs"
 	"eliborate/internal/models/dto"
 	"eliborate/internal/service"
-	"eliborate/pkg/storage"
 	"errors"
 	"net/http"
 	"strconv"
@@ -17,13 +16,11 @@ import (
 
 type bookHandlers struct {
 	service service.BookService
-	cache   *storage.RedisCache
 }
 
-func InitBookHandlers(service service.BookService, cache *storage.RedisCache) BookHandlers {
+func InitBookHandlers(service service.BookService) BookHandlers {
 	return bookHandlers{
 		service: service,
-		cache:   cache,
 	}
 }
 

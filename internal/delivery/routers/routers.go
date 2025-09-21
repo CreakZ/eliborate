@@ -2,7 +2,6 @@ package routers
 
 import (
 	"eliborate/internal/delivery/middleware"
-	"eliborate/pkg/storage"
 	"eliborate/pkg/utils"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +12,6 @@ import (
 func InitRouting(
 	engine *gin.Engine,
 	db *sqlx.DB,
-	cache *storage.RedisCache,
 	jwt utils.JWT,
 	middleware middleware.Middleware,
 	search meilisearch.IndexManager,
@@ -24,7 +22,7 @@ func InitRouting(
 	adminUserRG := engine.Group("/admins")
 	catRG := engine.Group("/categories")
 
-	InitBooksRouter(booksRG, db, cache, middleware, search)
+	InitBooksRouter(booksRG, db, middleware, search)
 	InitPublicRouter(publicRG, db, jwt)
 	InitUserRouter(userRG, db, middleware)
 	InitAdminUsersRouter(adminUserRG, db, middleware)

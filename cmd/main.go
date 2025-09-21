@@ -60,10 +60,6 @@ func main() {
 	}
 	logger.Info().Msg("Postgres client initialized successfully")
 
-	// Init redis client
-	cache := storage.NewRedisCacheManager()
-	logger.Info().Msg("Redis client initialized successfully")
-
 	// Init jwt utils
 	jwtUtil := utils.InitJWTUtil()
 	logger.Info().Msg("JWT initialized successfully")
@@ -88,7 +84,7 @@ func main() {
 	logger.Info().Msg("Search engine initialized successfully")
 
 	// Init routing
-	routers.InitRouting(server, db, cache, jwtUtil, middleW, search)
+	routers.InitRouting(server, db, jwtUtil, middleW, search)
 
 	// Server startup
 	if err := server.Run(":8080"); err != nil {
