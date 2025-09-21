@@ -3,10 +3,27 @@ services:
     container_name: lib_api
     build: .
     volumes:
-      - ./configs/:/app/configs/
       - ./docs/:/app/docs/
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+      MEILI_HOST: ${MEILI_HOST}
+      MEILI_PORT: ${MEILI_PORT}
+      MEILI_INDEX: ${MEILI_INDEX}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+
+      JWT_ACCESS_EXPIRE: ${JWT_ACCESS_EXPIRE}
+      JWT_SECRET: ${JWT_SECRET}
+
       GIN_MODE: ${GIN_MODE}
+
+      ACCESS_CONTROL_ALLOW_ORIGIN: ${ACCESS_CONTROL_ALLOW_ORIGIN}
+      ACCESS_CONTROL_ALLOW_METHODS: ${ACCESS_CONTROL_ALLOW_METHODS}
+      ACCESS_CONTROL_ALLOW_HEADERS: ${ACCESS_CONTROL_ALLOW_HEADERS}
     ports:
       - "8080:8080"
     depends_on:
@@ -14,12 +31,12 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   postgres:
     container_name: lib_db
     image: postgres:16.3
-    env_file:
-      - ./configs/.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PORT: ${POSTGRES_PORT}
@@ -27,7 +44,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./internal/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       start_period: 20s
@@ -35,28 +51,31 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    container_name: lib_cache
-    image: redis:latest
-    env_file:
-      - ./configs/.env
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+  migrate:
+    image: migrate/migrate:4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
+      - "up"
+    restart: "no"
 
   meilisearch:
     container_name: lib_search
-    image: getmeili/meilisearch:latest
-    env_file:
-      - ./configs/.env
+    image: getmeili/meilisearch:v1.11.3
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
       - mdb_data:/meili_data/data.ms/
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:7700/health"]
-      start_period: 20s
+      start_period: 10s
       interval: 10s
-      timeout: 1s
+      timeout: 2s
       retries: 3
 
 
