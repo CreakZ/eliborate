@@ -24,9 +24,9 @@ const (
 	MeiliIndex     = "MEILI_INDEX"
 	MeiliMasterKey = "MEILI_MASTER_KEY"
 
-	AccessControlAllowOrigin  = ""
-	AccessControlAllowMethods = ""
-	AccessControlAllowHeaders = ""
+	AccessControlAllowOrigin  = "ACCESS_CONTROL_ALLOW_ORIGIN"
+	AccessControlAllowMethods = "ACCESS_CONTROL_ALLOW_METHODS"
+	AccessControlAllowHeaders = "ACCESS_CONTROL_ALLOW_HEADERS"
 )
 
 func InitConfig() {
